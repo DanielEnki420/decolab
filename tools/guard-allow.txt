@@ -18,6 +18,7 @@ INSTALL.md	10.210.0.0
 install.sh	10.210.0.0
 tests/test-install.sh	10.210.0.0
 tests/test-install.sh	10.99.0.0
+tools/demo-panel.sh	10.210.0.0
 tools/vm-probe/guest.sh	10.210.0.0
 
 # CGNAT range used by Tailscale, named in a config check

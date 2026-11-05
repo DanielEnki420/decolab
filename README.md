@@ -14,6 +14,10 @@ container is up. Defaults are hardened. The dashboard has an Art Deco look.
 
 [Deutsche Kurzfassung](README.de.md)
 
+![The Decolab dashboard: apps, CPU, RAM, disk, temperatures, monitoring, network and fan of a Raspberry Pi 5](docs/images/dashboard.png)
+
+*The dashboard with made-up values (`tools/demo-panel.sh`).*
+
 ## What it will set up
 
 | Area | Services |
@@ -69,6 +73,7 @@ tools/setup-dev.sh        # installs the git hooks (needs git, gitleaks)
 tools/check.sh            # everything CI runs: shellcheck, guard, gitleaks, tests
 tests/run.sh              # only the contract tests (need Docker)
 bin/decolab-config check decolab.conf.example
+tools/demo-panel.sh       # the dashboard with made-up values, on http://127.0.0.1:8099/
 ```
 
 Every commit passes through `tools/guard.sh` and gitleaks. The guard rejects

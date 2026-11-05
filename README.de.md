@@ -13,6 +13,10 @@ Dashboard ist im Art-Deco-Stil.
 > ersten Fassung ändert sich noch viel: erst auf einem Ersatz-Pi ausprobieren.
 > Nur arm64 (Raspberry Pi 5).
 
+![Das Decolab-Dashboard: Apps, CPU, RAM, Speicher, Temperaturen, Überwachung, Netzwerk und Lüfter eines Raspberry Pi 5](docs/images/dashboard.png)
+
+*Das Dashboard mit erfundenen Werten (`tools/demo-panel.sh`).*
+
 Die vollständige Beschreibung steht im [englischen README](README.md).
 
 **Inhalt:** Pi-hole mit Unbound, Prometheus, Perses, Uptime Kuma, Portainer,

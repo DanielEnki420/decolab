@@ -104,12 +104,25 @@ otherwise.
 ## 4. Configure
 
 ```bash
+bin/decolab-config init
+```
+
+It finds what it can on the Pi (your user, the time zone, the LAN interface
+and address, the SSH port, your tailnet) and asks for the rest, each time
+with a suggestion in `[brackets]` that Enter accepts. Every answer is checked
+at once; the file is written only when all of them fit together, and an
+existing `decolab.conf` is never overwritten. Read the file once afterwards:
+it explains every key.
+
+To write it by hand instead:
+
+```bash
 cp decolab.conf.example decolab.conf
 nano decolab.conf
 bin/decolab-config check decolab.conf
 ```
 
-Every key is explained in the file. The ones you must look at:
+The keys you must look at:
 
 | Key | |
 |---|---|

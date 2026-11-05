@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# decolab-config - check a Decolab configuration file
+# decolab-config - write or check a Decolab configuration file
 #
-#   decolab-config check [FILE]     validate FILE (default: ./decolab.conf)
+#   decolab-config init [--defaults] [FILE]   ask a few questions, write FILE
+#   decolab-config check [FILE]               validate FILE
 #
-# Exit codes: 0 valid, 1 invalid, 2 usage error.
+# FILE defaults to ./decolab.conf. init never overwrites a file; --defaults
+# takes every suggestion without asking. Exit codes: 0 done or valid,
+# 1 invalid or nothing written, 2 usage error.
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -12,7 +15,7 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 . "$here/../lib/config.sh"
 
 usage() {
-  sed -n '2,6s/^# \{0,1\}//p' "${BASH_SOURCE[0]}" >&2
+  sed -n '2,9s/^# \{0,1\}//p' "${BASH_SOURCE[0]}" >&2
   exit 2
 }
 
@@ -29,6 +32,14 @@ case $cmd in
       printf 'INVALID: %s has %s error(s)\n' "$file" "$DECOLAB_CONFIG_ERRORS" >&2
       exit 1
     fi
+    ;;
+  init)
+    # shellcheck source=lib/config-init.sh
+    . "$here/../lib/config-init.sh"
+    defaults=()
+    if [ "${1:-}" = --defaults ]; then defaults=(--defaults); shift; fi
+    [ $# -le 1 ] || usage
+    decolab_config_init ${defaults[@]+"${defaults[@]}"} "${1:-decolab.conf}"
     ;;
   -h | --help | help) usage ;;
   *) usage ;;

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Fake ip for the tests: "-4 route show default" prints FAKE_IP_ROUTE,
+# "-4 -o addr show dev IFACE scope global" prints FAKE_IP_ADDR.
+case "$*" in
+  "-4 route show default") printf '%s\n' "${FAKE_IP_ROUTE:-}" ;;
+  "-4 -o addr show dev "*" scope global") printf '%s\n' "${FAKE_IP_ADDR:-}" ;;
+esac
+exit 0

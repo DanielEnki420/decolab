@@ -54,3 +54,5 @@ bin/decolab-firewall	fc00::
 bin/decolab-firewall	fd7a:115c:a1e0::
 tests/data/nft-list-decolab.txt	fc00::
 tests/fakes/panel-host.sh	10.210.0.0
+lib/config-init.sh	10.210.0.0
+lib/config-init.sh	10.211.0.0

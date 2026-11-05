@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Fake getent for the tests: knows no user, exits 2 like the real one then.
+exit 2

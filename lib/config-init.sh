@@ -277,7 +277,7 @@ decolab_config_init() { # [--defaults] FILE
     k=yes
     # the keys of DECOLAB_USER, not of whoever runs this (root under sudo)
     home=""
-    command -v getent >/dev/null 2>&1 && home=$(getent passwd "$DECOLAB_USER" | cut -d: -f6)
+    command -v getent >/dev/null 2>&1 && home=$(getent passwd "$DECOLAB_USER" | cut -d: -f6 || true) # 2 = no such user
     [ -n "$home" ] || home=${HOME:-/nonexistent}
     [ -s "$home/.ssh/authorized_keys" ] && k=no
     _ini_ask SSH_PASSWORDS yesno "$k" "Keep SSH password logins (no = keys only)" || return 1

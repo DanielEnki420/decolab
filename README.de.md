@@ -1,5 +1,7 @@
 # Decolab (Kurzfassung)
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/DanielEnki420/decolab/badge)](https://scorecard.dev/viewer/?uri=github.com/DanielEnki420/decolab)
+
 *Esse quam videri* (Sein statt Scheinen).
 
 Decolab macht aus einem Raspberry Pi 5 einen Heimserver, der **beweist**, dass er

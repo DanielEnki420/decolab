@@ -1,5 +1,7 @@
 # Decolab
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/DanielEnki420/decolab/badge)](https://scorecard.dev/viewer/?uri=github.com/DanielEnki420/decolab)
+
 *Esse quam videri* (to be, rather than to seem).
 
 Decolab turns a Raspberry Pi 5 into a self-hosted home server that **proves** it

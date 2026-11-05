@@ -15,8 +15,9 @@ repo=$t_tmp/repo
 mkdir -p "$repo"
 cp -R "$t_root/tools" "$t_root/githooks" "$repo/"
 : > "$repo/tools/guard-allow.txt"
-# The VM probe names Docker's example pool, an exception in the real list
-rm -rf "$repo/tools/vm-probe"
+# The VM probe and the demo panel name Docker's example pool, an exception
+# in the real list
+rm -rf "$repo/tools/vm-probe" "$repo/tools/demo-panel.sh"
 git -C "$repo" init -q
 git -C "$repo" config user.name test
 git -C "$repo" config user.email test@example.com

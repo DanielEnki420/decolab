@@ -1,4 +1,4 @@
-# The panel (stage 1)
+# The panel
 
 A read-only dashboard: `panel/server.py`, Python standard library only, run by
 `decolab-panel.service` on `WEB_UI_ADDRESS:PANEL_PORT` (default 8090).
@@ -34,8 +34,8 @@ needs the token. What a host does not have is `{"available": false}` (or
 | `/api/v1/backup` | newest complete backup in `BACKUP_DIR`, its age, a run in progress |
 | `/api/v1/speedtest` | the last 60 measurements, if `SPEEDTEST=yes` |
 
-`tests/test-panel.sh` is the contract: the Rust panel of stage 2 must pass
-it unchanged.
+`tests/test-panel.sh` is the contract: any change to the panel must pass it
+unchanged.
 
 ## Why it cannot touch Docker
 

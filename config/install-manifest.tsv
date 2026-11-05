@@ -23,7 +23,7 @@
 # tests/test-templates.sh checks that this list and the headers of the
 # files ("installed as ...") agree.
 #
-# The Rust tools of stage 2 read this file too: keep it a plain table.
+# Other tools may read this file too: keep it a plain table.
 
 config/host/tmpfiles.conf.template	/etc/tmpfiles.d/decolab.conf	0644	root:root	always	tmpfiles
 config/host/logrotate.template	/etc/logrotate.d/decolab	0644	root:root	always	-

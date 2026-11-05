@@ -1,4 +1,4 @@
-/* Decolab panel - page logic (stage 1: read-only).
+/* Decolab panel - page logic (read-only).
 
    Reads /api/v1/* and fills the page. Rules:
    - Every value goes in with textContent, never innerHTML: container and

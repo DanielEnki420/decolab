@@ -18,8 +18,8 @@
 #   notify   telegram | none
 #   restic   restic repository (absolute path or sftp:, rest:, s3:, b2:, azure:, gs:, swift:, rclone:)
 #
-# The file is read by bin/decolab-config (stage 1) and the Rust tools
-# (stage 2+). Keep it a plain list: no quoting, no inline comments.
+# The file is read by bin/decolab-config and lib/config.sh.
+# Keep it a plain list: no quoting, no inline comments.
 
 DECOLAB_USER         user     required
 DECOLAB_DIR          abspath  required

@@ -6,7 +6,7 @@
 *.pem
 *.secret
 
-# Local overlay for personal additions (see docs, stage 2)
+# Local overlay for personal additions (never committed)
 /local/
 compose.override.yml
 

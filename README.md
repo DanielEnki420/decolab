@@ -7,7 +7,7 @@ works instead of just looking healthy. Backups are restored automatically and
 checked. Monitors check that each service does its job, not only that the
 container is up. Defaults are hardened. The dashboard has an Art Deco look.
 
-> **Status: stage 1, before the first release.** The project is extracted
+> **Status: before the first release.** The project is extracted
 > from a private homelab that runs in daily use. Until the first release,
 > expect breaking changes, and test it on a spare Pi. **arm64 only**
 > (Raspberry Pi 5).
@@ -55,11 +55,12 @@ does not ship it and is not affiliated with any of these projects (see [NOTICE](
 
 ## Roadmap
 
-| Stage | Content |
-|---|---|
-| 1 | Shell/Python extract of the proven setup, install script, contract tests, VM rebuild test |
-| 2 | Dashboard rewritten in Rust (single binary, same design) |
-| 3 | Watchers, backups and setup wizard in Rust |
+Decolab stays Shell and Python on purpose. The Python code uses only the
+standard library and the dashboard is hand-written HTML, CSS and JavaScript
+without a build step. A release is therefore nothing but signed source code:
+no compiler, no package downloads, nothing that is not in the tag.
+
+Planned next: stricter static checks for the Python code in CI.
 
 ## Development
 
@@ -74,8 +75,8 @@ Every commit passes through `tools/guard.sh` and gitleaks. The guard rejects
 private and public IP addresses, MAC addresses, UUIDs, personal paths, e-mail
 addresses and a personal word list, in files and in commit messages. The
 tests are contract tests: they check what a script promises (its output, its
-files, its HTTP API), not how it is written, so they stay valid when parts
-are rewritten in Rust. Examples
+files, its HTTP API), not how it is written, so they stay valid when a script
+is rewritten. Examples
 use the documentation ranges `192.0.2.0/24` and `2001:db8::/32`.
 
 ## Support

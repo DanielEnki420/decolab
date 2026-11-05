@@ -3,9 +3,9 @@
 
     python3 -I panel/server.py DECOLAB_CONF
 
-Stage 1 shows, it does not act: every API route is a GET, nothing restarts,
-reboots, updates or writes. Actions come back (if ever) in the Rust panel of
-stage 2, with an authentication design that is made for them.
+The panel shows, it does not act: every API route is a GET, nothing restarts,
+reboots, updates or writes. Actions would need an authentication design made
+for them first.
 
 Only the Python standard library: install.sh installs no packages.
 
@@ -27,7 +27,7 @@ Security model
     unit forbids UNIX sockets, which also keeps it away from docker.sock.
 
 The JSON shapes are the contract for the tests (tests/test-panel.sh) and for
-the Rust panel. Convention: what this host does not have is reported as
+the dashboard. Convention: what this host does not have is reported as
 {"available": false} (or null for a single value), never as an error.
 
 Hooks for the tests (all optional):

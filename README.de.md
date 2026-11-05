@@ -8,7 +8,7 @@ wiederhergestellt und geprüft. Wächter prüfen, ob jeder Dienst seine Arbeit t
 nicht nur, ob der Container läuft. Die Voreinstellungen sind gehärtet, das
 Dashboard ist im Art-Deco-Stil.
 
-> **Stand: Stufe 1, vor der ersten Veröffentlichung.** Das Projekt wird aus
+> **Stand: vor der ersten Veröffentlichung.** Das Projekt wird aus
 > einem privaten Homelab herausgelöst, das täglich im Einsatz ist. Bis zur
 > ersten Fassung ändert sich noch viel: erst auf einem Ersatz-Pi ausprobieren.
 > Nur arm64 (Raspberry Pi 5).

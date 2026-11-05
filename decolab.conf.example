@@ -3,8 +3,8 @@
 # Copy this file to decolab.conf and adjust it, then run:
 #   bin/decolab-config check decolab.conf
 #
-# Format rules (checked, because shell, systemd, Docker Compose and the
-# Rust tools must all read this file the same way):
+# Format rules (checked, because shell, systemd, Docker Compose and
+# Python must all read this file the same way):
 #   - one KEY=VALUE per line, nothing before the key, no spaces around "="
 #   - no quotes, no spaces, no $, no inline comments; comments on their own line
 #   - allowed characters in values: letters, digits and . _ / : @ + , -

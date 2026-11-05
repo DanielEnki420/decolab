@@ -3,7 +3,7 @@
 This takes about an hour, most of it waiting for images. Nothing here needs
 a graphical desktop: an SSH login is enough.
 
-> **Status:** stage 1, not released yet. Test it on a spare Pi first.
+> **Status:** not released yet. Test it on a spare Pi first.
 > Decolab is provided as is, without support (see [SECURITY.md](SECURITY.md)
 > for security reports).
 

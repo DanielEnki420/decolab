@@ -3,8 +3,7 @@
 #
 # A test file sources this, calls `check` for each case and ends with
 # `t_finish`. Tests run the real tools as a user would and look only at exit
-# codes and output, so they stay valid when stage 2 replaces the shell tools
-# with Rust.
+# codes and output, so they stay valid when a tool is rewritten.
 #
 # Never write a real-looking address or name literally into a test file:
 # tools/guard.sh scans the tests too. Build such values at run time from two

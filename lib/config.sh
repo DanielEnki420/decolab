@@ -3,8 +3,8 @@
 #
 # The configuration is DATA, never code: this file is parsed line by line and
 # is never sourced or evaluated. Values may only contain a small set of
-# characters, so shell, systemd, Docker Compose and the Rust tools of later
-# stages all read it the same way.
+# characters, so shell, systemd, Docker Compose and Python all read it
+# the same way.
 #
 # Usage:
 #   . lib/config.sh

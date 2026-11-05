@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Contract tests for the panel's HTTP API (panel/server.py).
 #
-# Everything goes through HTTP, as a browser or the Rust panel of stage 2
-# would see it: status codes, headers, JSON shapes. The host is made up
+# Everything goes through HTTP, as a browser would see it: status codes, headers, JSON shapes. The host is made up
 # (tests/fakes/panel-host.sh), Prometheus is a stub.
 set -uo pipefail
 # shellcheck source=tests/lib.sh

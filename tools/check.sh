@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # check.sh - every check Decolab's CI runs, the same way on your machine
 #
-#   tools/check.sh lint     shellcheck, Python syntax, guard (tree + history), gitleaks
+#   tools/check.sh lint     shellcheck, Python syntax, ruff, mypy, guard (tree + history), gitleaks
 #   tools/check.sh test     the contract tests (tests/run.sh; needs Docker)
 #   tools/check.sh          both
 #
@@ -52,6 +52,23 @@ lint() {
     echo "python: $n files compile"
   else
     fail python
+  fi
+
+  # ruff and mypy come from .lint/ (tools/setup-dev.sh, pinned by checksum in
+  # tools/requirements-lint.txt) or, in CI, from the PATH
+  step "ruff"
+  if [ -x .lint/bin/ruff ]; then PATH="$root/.lint/bin:$PATH"; fi
+  if ! command -v ruff >/dev/null 2>&1 || ! command -v mypy >/dev/null 2>&1; then
+    echo "ruff or mypy is not installed: run tools/setup-dev.sh" >&2
+    fail python-lint
+  else
+    if python_files | xargs -0 ruff check --no-cache --quiet; then
+      echo "ruff: $n files clean"
+    else
+      fail ruff
+    fi
+    step "mypy"
+    python_files | xargs -0 mypy || fail mypy
   fi
 
   step "guard (tree)"

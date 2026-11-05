@@ -1,0 +1,13 @@
+# ruff: lint for Decolab's Python (tools/check.sh lint, CI). Version pinned in
+# tools/requirements-lint.txt.
+target-version = "py313" # Debian 13
+line-length = 120
+
+[lint]
+# ruff's defaults plus bugbear (B), security (S) and a few bug-prone patterns.
+extend-select = ["B", "S", "BLE", "PLW1510", "SIM115"]
+ignore = [
+  "S603",   # subprocess with a list: Decolab never uses a shell, the rule cannot tell
+  "UP031",  # %-formatting is fine; rewriting it only churns tested code
+  "EXE001", # services and tests are run as "python3 -I FILE", not executed directly
+]

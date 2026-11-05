@@ -84,7 +84,7 @@ def measure(sid):
         r = subprocess.run(
             [LIBRESPEED, "--local-json", SERVERS, "--server", str(sid), "--json",
              "--duration", str(DURATION), "--no-icmp", "--concurrent", str(CONCURRENT)],
-            capture_output=True, text=True, timeout=TIMEOUT)
+            capture_output=True, text=True, timeout=TIMEOUT, check=False)
     except subprocess.TimeoutExpired:
         return None, f"server {sid}: no result within {TIMEOUT} s"
     except OSError as e:
@@ -94,7 +94,7 @@ def measure(sid):
     try:
         d = json.loads(r.stdout)
         d = d[0] if isinstance(d, list) else d
-        res = {
+        res: dict = {
             "down": round(float(d["download"]), 1),
             "up": round(float(d["upload"]), 1),
             "ping": round(float(d["ping"]), 1),
@@ -133,7 +133,7 @@ def prom_text(last_ok, run_t, run_ok):
 
 def main():
     source = "manual" if "--manual" in sys.argv[1:] else "cron"
-    lock = open(LOCK, "a")
+    lock = open(LOCK, "a")  # noqa: SIM115 (held, and so locked, until the process ends)
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:

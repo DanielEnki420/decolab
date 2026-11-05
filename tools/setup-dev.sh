@@ -3,7 +3,9 @@
 #
 # Installs the git hooks (guard + gitleaks on every commit and commit message,
 # and over the whole history before every push)
-# and creates an empty private word list for tools/guard.sh if none exists.
+# creates an empty private word list for tools/guard.sh if none exists, and
+# installs ruff and mypy into .lint/ (versions and checksums from
+# tools/requirements-lint.txt).
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
 words=${DECOLAB_GUARD_WORDS:-$HOME/.config/decolab/guard-words.txt}
@@ -31,6 +33,19 @@ EOF
   echo "setup-dev: created $words; add your personal words to it"
 else
   echo "setup-dev: private word list found: $words"
+fi
+
+req=$root/tools/requirements-lint.txt
+stamp=$root/.lint/requirements-lint.txt
+if [ -f "$stamp" ] && cmp -s "$req" "$stamp"; then
+  echo "setup-dev: ruff and mypy in .lint/ are current"
+else
+  rm -rf "$root/.lint"
+  python3 -m venv "$root/.lint"
+  "$root/.lint/bin/pip" install --quiet --disable-pip-version-check \
+    --only-binary :all: --require-hashes -r "$req"
+  cp "$req" "$stamp"
+  echo "setup-dev: ruff and mypy installed in .lint/"
 fi
 
 [ "$missing" -eq 0 ] || { echo "setup-dev: install the missing tools, then run this again" >&2; exit 1; }

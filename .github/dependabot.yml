@@ -1,0 +1,26 @@
+# Dependabot proposes updates as pull requests; nothing is merged on its own.
+# The cooldown holds back releases younger than a week: fresh releases are
+# where hijacked packages show up first.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+
+  # ruff, mypy and their dependencies (tools/requirements-lint.txt)
+  - package-ecosystem: pip
+    directory: /tools
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      lint:
+        patterns: ["*"]
+    commit-message:
+      prefix: lint

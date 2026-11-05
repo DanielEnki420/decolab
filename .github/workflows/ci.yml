@@ -37,7 +37,11 @@ jobs:
           tar xzf gl.tar.gz gitleaks
           mkdir -p bin && mv shellcheck-v0.11.0/shellcheck gitleaks bin/
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      - name: shellcheck, Python syntax, guard, gitleaks
+          python3 -m venv "$RUNNER_TEMP/lint"
+          "$RUNNER_TEMP/lint/bin/pip" install --quiet --disable-pip-version-check \
+            --only-binary :all: --require-hashes -r "$GITHUB_WORKSPACE/tools/requirements-lint.txt"
+          echo "$RUNNER_TEMP/lint/bin" >> "$GITHUB_PATH"
+      - name: shellcheck, Python syntax, ruff, mypy, guard, gitleaks
         run: tools/check.sh lint
       # promtool, percli, unbound-checkconf and compose run in Docker; the hook
       # tests need gitleaks from the step above.

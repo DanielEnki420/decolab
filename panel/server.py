@@ -202,7 +202,7 @@ def hwmon(name, *files):
         d = os.path.join(base, entry)
         if (read(os.path.join(d, "name"), "") or "").strip() != name:
             continue
-        vals = []
+        vals: list[int | None] = []
         for f in files:
             raw = (read(os.path.join(d, f), "") or "").strip()
             try:
@@ -251,7 +251,7 @@ class Sampler:
         self.cpu = None
         self.cores = []
         self.net_rate = None
-        self.history = {k: [] for k in ("t", "cpu", "ram", "cpu_temp", "nvme_temp", "rx", "tx")}
+        self.history: dict[str, list] = {k: [] for k in ("t", "cpu", "ram", "cpu_temp", "nvme_temp", "rx", "tx")}
 
     def temps(self):
         cpu = hwmon("cpu_thermal", "temp1_input")
@@ -264,7 +264,7 @@ class Sampler:
         now = time.monotonic()
         cur = cpu_times()
         pct = []
-        for (b0, t0), (b1, t1) in zip(self.prev_cpu, cur):
+        for (b0, t0), (b1, t1) in zip(self.prev_cpu, cur, strict=False):  # a CPU may come or go
             dt = t1 - t0
             pct.append(round((b1 - b0) / dt * 100, 1) if dt > 0 else 0.0)
         net = net_bytes(self.conf.get("LAN_INTERFACE", "eth0"))
@@ -295,7 +295,7 @@ class Sampler:
             time.sleep(SAMPLE_S)
             try:
                 self.sample()
-            except Exception as e:  # a bad read must not stop the history
+            except Exception as e:  # noqa: BLE001 (a bad read must not stop the history)
                 print(f"sampler: {e}", file=sys.stderr, flush=True)
 
     def snapshot(self):
@@ -357,7 +357,7 @@ def expected_containers(conf):
     for stack in stacks(conf):
         f = os.path.join(REPO, "compose", "core.yml") if stack == "core" else \
             os.path.join(REPO, "stacks", stack, "compose.yml")
-        for m in re.finditer(r"^\s+container_name:\s*([A-Za-z0-9_.-]+)\s*$", read(f, "") or "", re.M):
+        for m in re.finditer(r"^\s+container_name:\s*([A-Za-z0-9_.-]+)\s*$", read(f, "") or "", re.MULTILINE):
             names.append(m.group(1))
     return names
 
@@ -441,7 +441,9 @@ def api_backup(conf):
     if names is None:
         return {"available": False}
     pat = re.compile(r"(20\d\d-\d\d-\d\d_\d\d-\d\d)(-incomplete)?")
-    done, incomplete, running = [], [], False
+    done: list[str] = []
+    incomplete: list[str] = []
+    running = False
     for n in names:
         if n.startswith(".partial-"):
             running = True
@@ -475,6 +477,7 @@ def api_speedtest(conf):
 # --- HTTP ---------------------------------------------------------------------
 
 class Handler(http.server.BaseHTTPRequestHandler):
+    server: "Server"
     server_version = "decolab-panel"
     sys_version = ""
     protocol_version = "HTTP/1.1"
@@ -563,7 +566,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(404, {"error": "not found"})
         try:
             return self.send(200, routes[path]())
-        except Exception as e:  # report, never leak a trace to the page
+        except Exception as e:  # noqa: BLE001 (report, never leak a trace to the page)
             print(f"{path}: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
             return self.send(500, {"error": "internal error"})
 
@@ -616,7 +619,8 @@ class Server(http.server.ThreadingHTTPServer):
         # HTTPServer.server_bind asks DNS for the fully qualified name
         # (socket.getfqdn): 20 s at start without a resolver. Not needed.
         socketserver.TCPServer.server_bind(self)
-        self.server_name, self.server_port = self.server_address[:2]
+        host, port = self.server_address[:2]
+        self.server_name, self.server_port = str(host), int(port)
 
 
 def main(argv):

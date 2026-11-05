@@ -55,6 +55,7 @@ FAN_ENERGY, FAN_NOTIFY, FAN_INTERVAL, FAN_NIGHT (0/1), FAN_VCGENCMD.
 import collections
 import datetime
 import glob
+import itertools
 import json
 import logging
 import os
@@ -94,12 +95,12 @@ STOP_PWM = 150
 OVERRIDE_MAX_AGE = 6 * 3600
 DEFAULT_CURVE = [(40, 40), (50, 88), (61, 130), (70, 190), (85, 255)]
 
-_alert_at = {}          # cooldown PER alarm: one global cooldown let new
+_alert_at: dict[str, float] = {}  # cooldown PER alarm: one global cooldown let new
 _curve = list(DEFAULT_CURVE)  # alarms silence each other for 15 minutes
 _curve_mtime = 0.0
-_hwmon = {}
+_hwmon: dict[tuple[str, str], str] = {}
 _pwm_write_errors = 0
-_troubles = {}
+_troubles: dict[str, bool] = {}
 _stop = False
 
 
@@ -175,7 +176,7 @@ def hwmon_path(name, file, fresh=False):
             continue
     if not hits:
         return None
-    _hwmon[key] = sorted(hits)[0]
+    _hwmon[key] = min(hits)
     return _hwmon[key]
 
 
@@ -190,7 +191,7 @@ def path(kind, fresh=False):
 def read_temp(kind):
     """None on failure, never 0.0. An explicit path is used ALONE."""
     candidates = [PATH_ENV[kind]] if PATH_ENV[kind] else [p for p in (path(kind), path(kind, fresh=True)) if p]
-    for p in dict.fromkeys(candidates):
+    for p in dict.fromkeys(c for c in candidates if c):
         try:
             with open(p) as f:
                 value = int(f.read().strip()) / 1000
@@ -235,7 +236,7 @@ def set_pwm(value):
 def temp_to_pwm(temp, curve):
     if temp <= curve[0][0]:
         return curve[0][1]
-    for (t0, p0), (t1, p1) in zip(curve, curve[1:]):
+    for (t0, p0), (t1, p1) in itertools.pairwise(curve):
         if t0 <= temp <= t1:
             return int(p0 + (temp - t0) / (t1 - t0) * (p1 - p0)) if t1 != t0 else p1
     return curve[-1][1]
@@ -282,7 +283,7 @@ def read_watts():
     USB and power supply losses (the PMIC measures no input current). About
     2 W where the socket sees 4-7 W: hence the name soc_power, not power."""
     try:
-        out = subprocess.run([VCGENCMD, "pmic_read_adc"], capture_output=True, text=True, timeout=3).stdout
+        out = subprocess.run([VCGENCMD, "pmic_read_adc"], capture_output=True, text=True, timeout=3, check=False).stdout
     except (OSError, subprocess.TimeoutExpired):
         return None
     amps, volts = {}, {}
@@ -380,7 +381,7 @@ def main():
 
     current, bad_run, good_run, failsafe, hot_run, fan_reported = -1, 0, 0, False, 0, False
     last_logged = None
-    window = collections.deque(maxlen=max(1, round(SMOOTH_S / INTERVAL)))
+    window: collections.deque[float] = collections.deque(maxlen=max(1, round(SMOOTH_S / INTERVAL)))
     while not _stop:
         curve = load_curve()
         temps = {s: read_temp(s) for s in sensors}
@@ -421,6 +422,7 @@ def main():
             alarm("sensor", f"⚠️ Temperature sensor {dead} failed",
                   f"{dead} cannot be read. Fan at least {FAILSAFE_FLOOR}, now {target}. Remaining sensor: {temp:.1f} °C")
         else:
+            assert temp is not None  # noqa: S101 (for mypy: the no-reading case continued above)
             ov = read_override() or {}
             om = ov.get("mode", "auto")
             if om == "quiet":

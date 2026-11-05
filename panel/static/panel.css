@@ -233,8 +233,8 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 .tbl td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
 .tbl tr:hover td { background: var(--surface-h); }
 .tbl .name-col { font-weight: 600; }
-.tbl .img-col  { color: var(--text-2); font-family: var(--mono); font-size: 12.3px; }
-.tbl .port-col { color: var(--accent); font-family: var(--mono); font-size: 12.3px; }
+.tbl .img-col  { color: var(--text-2); font-family: var(--mono); font-size: 12.3px; overflow-wrap: anywhere; }
+.tbl .port-col { color: var(--accent); font-family: var(--mono); font-size: 12.3px; white-space: nowrap; }
 
 .btn { display: inline-flex; align-items: center; gap: 6px;
        padding: 9px 18px; border-radius: var(--radius-s);

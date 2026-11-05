@@ -1,4 +1,7 @@
 # Dependabot proposes updates as pull requests; nothing is merged on its own.
+# Take a proposal over as your own commit instead of merging it: its commit
+# carries GitHub's bot addresses, which tools/guard.sh refuses in the history.
+# Dependabot closes the pull request once main has the new version.
 # The cooldown holds back releases younger than a week: fresh releases are
 # where hijacked packages show up first.
 version: 2

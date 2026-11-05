@@ -78,7 +78,7 @@ for f in files:
     text = open(f, encoding="utf-8").read()
     for block in re.split(r"\n(?=  [A-Za-z0-9_-]+:\n)", text):
         name = re.search(r"^\s+container_name:\s*([A-Za-z0-9_.-]+)\s*$", block, re.M)
-        image = re.search(r"^\s+image:\s*([^\s@]+)", block, re.M)
+        image = re.search(r"^\s+image:\s*(\S+)", block, re.M)
         if name:
             result.append({"metric": {"name": name.group(1), "image": image.group(1) if image else ""},
                            "value": [since, str(since)]})

@@ -287,6 +287,11 @@ function renderContainers(d) {
   set('dk-src', containersOk ? 'live' : 'offline');
   renderTable();
 }
+// Images are pinned by digest: show its first 12 characters, the whole
+// reference on hover (a full sha256 pushes the other columns into wrapping).
+function shortImage(image) {
+  return image.replace(/@sha256:([0-9a-f]{12})[0-9a-f]{52}$/, '@$1…');
+}
 function renderTable() {
   const tbody = $('docker-tbody'), q = ($('dk-suche').value || '').trim().toLowerCase();
   const text = { rot: 'Stopped', gruen: 'Running', neutral: 'Unknown' };
@@ -297,7 +302,9 @@ function renderTable() {
   list.forEach(c => {
     const tr = el('tr');
     tr.appendChild(el('td', 'name-col', c.name + (c.expected ? '' : ' (extra)')));
-    tr.appendChild(el('td', 'img-col', c.image || '—'));
+    const img = el('td', 'img-col', c.image ? shortImage(c.image) : '—');
+    if (c.image) img.title = c.image;
+    tr.appendChild(img);
     tr.appendChild(el('td', 'port-col', c.since ? ago(c.since) : '—'));
     const td = el('td'), b = el('span', 'badge ' + badge[state(c)]);
     b.appendChild(el('span', 'bdot'));

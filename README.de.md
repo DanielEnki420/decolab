@@ -15,7 +15,14 @@ Dashboard ist im Art-Deco-Stil.
 
 ![Das Decolab-Dashboard: Apps, CPU, RAM, Speicher, Temperaturen, Überwachung, Netzwerk und Lüfter eines Raspberry Pi 5](docs/images/dashboard.png)
 
-*Das Dashboard mit erfundenen Werten (`tools/demo-panel.sh`).*
+<details>
+<summary>Mehr: die Container-Liste</summary>
+
+![Die Container-Liste: jeder Container mit seinem per Prüfsumme gepinnten Image, Laufzeit und Zustand](docs/images/containers.png)
+
+</details>
+
+*Erfundene Werte, aus `tools/demo-panel.sh`.*
 
 Die vollständige Beschreibung steht im [englischen README](README.md).
 

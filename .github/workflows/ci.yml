@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # guard and gitleaks read the whole history
           persist-credentials: false
@@ -29,16 +29,16 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
-          curl -fsSL -o sc.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          curl -fsSL --retry 4 --retry-all-errors --retry-delay 5 -o sc.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
           echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  sc.tar.xz" | sha256sum -c -
           tar xJf sc.tar.xz
-          curl -fsSL -o gl.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          curl -fsSL --retry 4 --retry-all-errors --retry-delay 5 -o gl.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tar.gz" | sha256sum -c -
           tar xzf gl.tar.gz gitleaks
           mkdir -p bin && mv shellcheck-v0.11.0/shellcheck gitleaks bin/
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           python3 -m venv "$RUNNER_TEMP/lint"
-          "$RUNNER_TEMP/lint/bin/pip" install --quiet --disable-pip-version-check \
+          "$RUNNER_TEMP/lint/bin/pip" install --quiet --disable-pip-version-check --retries 5 \
             --only-binary :all: --require-hashes -r "$GITHUB_WORKSPACE/tools/requirements-lint.txt"
           echo "$RUNNER_TEMP/lint/bin" >> "$GITHUB_PATH"
       - name: shellcheck, Python syntax, ruff, mypy, guard, gitleaks

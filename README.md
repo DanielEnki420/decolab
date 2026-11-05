@@ -16,7 +16,14 @@ container is up. Defaults are hardened. The dashboard has an Art Deco look.
 
 ![The Decolab dashboard: apps, CPU, RAM, disk, temperatures, monitoring, network and fan of a Raspberry Pi 5](docs/images/dashboard.png)
 
-*The dashboard with made-up values (`tools/demo-panel.sh`).*
+<details>
+<summary>More: the container list</summary>
+
+![The container list: every container with its image, pinned by digest, how long it has been running and its state](docs/images/containers.png)
+
+</details>
+
+*Made-up values, from `tools/demo-panel.sh`.*
 
 ## What it will set up
 

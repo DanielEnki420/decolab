@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Fake mktemp for the tests: logs its arguments to FAKE_MKTEMP_LOG, and if
+# FAKE_PLANT is set writes "planted" there first (a file that appears between
+# a check and the write). Then runs the real mktemp.
+[ -z "${FAKE_MKTEMP_LOG:-}" ] || printf '%s\n' "$*" >> "$FAKE_MKTEMP_LOG"
+[ -z "${FAKE_PLANT:-}" ] || printf 'planted\n' > "$FAKE_PLANT"
+PATH=${PATH#*/tests/fakes:}
+exec mktemp "$@"

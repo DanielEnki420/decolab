@@ -14,7 +14,7 @@ net="192.0" net="$net.2"
 pi="$net.57"
 lan="10.2" lan="${lan}10.4"
 sys=$t_tmp/sys
-mkdir -p "$sys/etc/ssh/sshd_config.d" "$t_tmp/home/.ssh"
+mkdir -p "$sys/etc/ssh/sshd_config.d" "$t_tmp/home/.ssh" "$t_tmp/drafts"
 ln -s /usr/share/zoneinfo/Europe/Berlin "$sys/etc/localtime"
 printf 'Port 22\n' > "$sys/etc/ssh/sshd_config"
 printf '# moved\nPort 2201\n' > "$sys/etc/ssh/sshd_config.d/10-port.conf"
@@ -22,7 +22,7 @@ tsjson='{"Self":{},"MagicDNSSuffix":"tail5678.ts.net","Version":"1"}'
 
 # run NAME [VAR=VALUE...] -- ARGS : init with the fake host; stdin passes through
 host() {
-  env PATH="$t_root/tests/fakes:$PATH" HOME="$t_tmp/home" DECOLAB_SYSROOT="$sys" \
+  env PATH="$t_root/tests/fakes:$PATH" HOME="$t_tmp/home" DECOLAB_SYSROOT="$sys" TMPDIR="$t_tmp/drafts" \
     SUDO_USER=alice \
     FAKE_IP_ROUTE="default via $net.1 dev eth0 proto dhcp src $pi metric 100" \
     FAKE_IP_ADDR="2: eth0    inet $pi/24 brd $net.255 scope global dynamic noprefixroute eth0" \
@@ -49,11 +49,16 @@ same "optional copies stay empty" "$(val USB_BACKUP_DIR "$f")|$(val RESTIC_REPOS
 check "DHCP address: says to reserve it" 0 "reserve it for this Pi" -- host "$cfg" init --defaults "$t_tmp/a2.conf"
 check "comments of the example stay" 0 "" -- grep -q "^# Pool for Docker networks" "$f"
 same "file mode 644" "$(stat -c %a "$f" 2>/dev/null || stat -f %Lp "$f")" 644
-same "no temporary file left behind" "$(find "$t_tmp" -maxdepth 1 -name '.decolab-conf*' | wc -l | tr -d ' ')" 0
+same "no draft left behind" "$(find "$t_tmp/drafts" -mindepth 1 | wc -l | tr -d ' ')" 0
+same "nothing but the file next to it" "$(find "$t_tmp" -maxdepth 1 -name '.*' | wc -l | tr -d ' ')" 0
 
 printf 'KEEP=me\n' > "$t_tmp/old.conf"
 check "never overwrites a file" 1 "already exists" -- host "$cfg" init --defaults "$t_tmp/old.conf"
 same "the old file is unchanged" "$(cat "$t_tmp/old.conf")" "KEEP=me"
+check "a file that appears meanwhile is not overwritten" 1 "appeared meanwhile" -- host env FAKE_PLANT="$t_tmp/race.conf" "$cfg" init --defaults "$t_tmp/race.conf"
+same "the file that appeared keeps its content" "$(cat "$t_tmp/race.conf")" planted
+check "draft in a private temporary directory" 0 "" -- host env FAKE_MKTEMP_LOG="$t_tmp/mktemp.log" "$cfg" init --defaults "$t_tmp/where.conf"
+same "draft not next to the target" "$(grep -c "^-d $t_tmp/drafts/decolab-init" "$t_tmp/mktemp.log")" 1
 ln -s "$t_tmp/nowhere" "$t_tmp/link.conf"
 check "never writes through a dangling link" 1 "already exists" -- host "$cfg" init --defaults "$t_tmp/link.conf"
 
@@ -97,7 +102,10 @@ check "Vaultwarden without Tailscale is refused" 0 "needs TAILSCALE=yes" -- host
 same "Vaultwarden ends up off" "$(val MODULE_VAULTWARDEN "$t_tmp/ask4.conf")" no
 # ... hardening(16) backup_dir(17): a backup folder inside the repository
 check "answers that clash: nothing written" 1 "must not be inside DECOLAB_DIR" -- host bash -c 'printf "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n%s\n" "$3/bk" | "$1" init "$2"' _ "$cfg" "$t_tmp/clash.conf" "$t_root"
+same "clash: no draft left behind" "$(find "$t_tmp/drafts" -mindepth 1 | wc -l | tr -d ' ')" 0
 same "clash: no file" "$(test -e "$t_tmp/clash.conf" && echo yes || echo no)" no
+check "clash message" 1 "$t_tmp/clash2.conf:" -- host bash -c 'printf "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n%s\n" "$3/bk" | "$1" init "$2"' _ "$cfg" "$t_tmp/clash2.conf" "$t_root"
+refute "clash message has no draft path" "decolab-init."
 check "an optional copy can be left empty with -" 0 "Wrote" -- host bash -c 'printf "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/media/usb\n-\n" | "$1" init "$2"' _ "$cfg" "$t_tmp/usb.conf"
 refute "- is not taken as a path" "is not a restic repository"
 same "USB copy set, restic empty" "$(val USB_BACKUP_DIR "$t_tmp/usb.conf")|$(val RESTIC_REPOSITORY "$t_tmp/usb.conf")" "/media/usb|"

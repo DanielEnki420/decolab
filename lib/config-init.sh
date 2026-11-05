@@ -170,10 +170,19 @@ _ini_render() { # EXAMPLE OUT
   done < "$1" > "$2"
 }
 
+# print loader messages with the draft's path replaced by the target's
+_ini_relabel() { # TEXT DRAFT TARGET
+  local line
+  [ -n "$1" ] || return 0
+  while IFS= read -r line; do
+    printf '%s\n' "${line//"$2"/$3}" >&2
+  done <<< "$1"
+}
+
 # --- main --------------------------------------------------------------------
 
 decolab_config_init() { # [--defaults] FILE
-  local out lan dev addr dyn net host repo example tmp k
+  local out lan dev addr dyn net host repo example tmp k d errs home
   if [ "${1:-}" = --defaults ]; then _ini_defaults=1; shift; fi
   out=${1:?usage: decolab_config_init [--defaults] FILE}
   repo=$(cd "$DECOLAB_LIB_DIR/.." && pwd -P)
@@ -266,7 +275,11 @@ decolab_config_init() { # [--defaults] FILE
   SSH_PASSWORDS=yes
   if [ "$HARDENING" = yes ]; then
     k=yes
-    [ -s "${HOME:-/nonexistent}/.ssh/authorized_keys" ] && k=no
+    # the keys of DECOLAB_USER, not of whoever runs this (root under sudo)
+    home=""
+    command -v getent >/dev/null 2>&1 && home=$(getent passwd "$DECOLAB_USER" | cut -d: -f6)
+    [ -n "$home" ] || home=${HOME:-/nonexistent}
+    [ -s "$home/.ssh/authorized_keys" ] && k=no
     _ini_ask SSH_PASSWORDS yesno "$k" "Keep SSH password logins (no = keys only)" || return 1
     if [ "$SSH_PASSWORDS" = no ] && [ "$k" = yes ]; then
       _ini_note "SSH_PASSWORDS=no, but ~/.ssh/authorized_keys is empty: add your key before the firewall's apply."
@@ -282,18 +295,27 @@ decolab_config_init() { # [--defaults] FILE
   _ini_section Notifications
   _ini_ask NOTIFY notify none "Notifications: telegram or none (install.sh asks for the bot token)" || return 1
 
-  tmp=$(mktemp "$(dirname "$out")/.decolab-conf.XXXXXX") || return 1
+  # The draft lives in a private directory, never next to the target: a name
+  # others can guess there could be a planted link (root follows it under sudo).
+  d=$(mktemp -d "${TMPDIR:-/tmp}/decolab-init.XXXXXX") || return 1
+  tmp=$d/decolab.conf
   _ini_render "$example" "$tmp"
-  if ! decolab_config_load "$tmp" 2> "$tmp.err"; then
-    sed "s|^$tmp|$out|" "$tmp.err" >&2
-    rm -f "$tmp" "$tmp.err"
+  if ! errs=$(decolab_config_load "$tmp" 2>&1); then
+    _ini_relabel "$errs" "$tmp" "$out"
+    rm -rf "$d"
     printf 'Nothing written: the answers do not fit together (see above).\n' >&2
     return 1
   fi
-  sed "s|^$tmp|$out|" "$tmp.err" >&2
-  rm -f "$tmp.err"
-  chmod 644 "$tmp"
-  if ! mv "$tmp" "$out"; then rm -f "$tmp"; return 1; fi
+  _ini_relabel "$errs" "$tmp" "$out" # warnings
+  decolab_config_load "$tmp" 2>/dev/null || true # for the count
+  # noclobber: the shell creates the file with O_EXCL, so neither a file, a
+  # directory nor a link that appeared since the check above is followed
+  if ! (umask 022 && set -o noclobber && cat "$tmp" > "$out") 2>/dev/null; then
+    rm -rf "$d"
+    printf '%s appeared meanwhile or cannot be created; nothing written.\n' "$out" >&2
+    return 1
+  fi
+  rm -rf "$d"
 
   printf '\nWrote %s (%s settings).\n' "$out" "$DECOLAB_CONFIG_COUNT" >&2
   if [ -n "$_ini_notes" ]; then printf 'Before you install:\n%s' "$_ini_notes" >&2; fi

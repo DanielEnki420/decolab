@@ -8,9 +8,9 @@ wiederhergestellt und geprüft. Wächter prüfen, ob jeder Dienst seine Arbeit t
 nicht nur, ob der Container läuft. Die Voreinstellungen sind gehärtet, das
 Dashboard ist im Art-Deco-Stil.
 
-> **Stand: vor der ersten Veröffentlichung.** Das Projekt wird aus
+> **Stand: frühe Fassung (v0.1.0).** Das Projekt wird aus
 > einem privaten Homelab herausgelöst, das täglich im Einsatz ist. Bis zur
-> ersten Fassung ändert sich noch viel: erst auf einem Ersatz-Pi ausprobieren.
+> Version 1.0 ändert sich noch viel: erst auf einem Ersatz-Pi ausprobieren.
 > Nur arm64 (Raspberry Pi 5).
 
 ![Das Decolab-Dashboard: Apps, CPU, RAM, Speicher, Temperaturen, Überwachung, Netzwerk und Lüfter eines Raspberry Pi 5](docs/images/dashboard.png)

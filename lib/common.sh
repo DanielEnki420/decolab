@@ -306,8 +306,11 @@ check_ok() {
 
 # prom_query PROMQL - prints the first value of an instant query, nothing on
 # error or empty result
+# (the answer is kept first, then parsed: data, never run)
 prom_query() {
-  curl -sS -m 10 -G "${PROM_URL:-http://127.0.0.1:9090}/api/v1/query" --data-urlencode "query=$1" 2>/dev/null |
+  local answer
+  answer=$(curl -sS -m 10 -G "${PROM_URL:-http://127.0.0.1:9090}/api/v1/query" --data-urlencode "query=$1" 2>/dev/null) || answer=""
+  printf '%s' "$answer" |
     python3 -I -c 'import json, sys
 try:
     r = json.load(sys.stdin)["data"]["result"]

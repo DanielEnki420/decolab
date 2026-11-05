@@ -66,7 +66,8 @@ docker run -d --name "$name" -p 127.0.0.1::8080 --read-only -v /etc/perses/plugi
 port=$(docker port "$name" 8080/tcp | head -1 | sed 's/.*://')
 dashboards=""
 for _ in $(seq 1 60); do
-  dashboards=$(curl -s -m 2 "http://127.0.0.1:$port/api/v1/projects/decolab/dashboards" 2>/dev/null |
+  answer=$(curl -s -m 2 "http://127.0.0.1:$port/api/v1/projects/decolab/dashboards" 2>/dev/null) || answer=""
+  dashboards=$(printf '%s' "$answer" |
     python3 -I -c 'import json,sys
 try: print(" ".join(sorted(d["metadata"]["name"] for d in json.load(sys.stdin))))
 except Exception: pass')
@@ -74,7 +75,8 @@ except Exception: pass')
   sleep 1
 done
 same "Perses loads all five dashboards" "$dashboards" "containers internet services system ups"
-plugins=$(curl -s -m 5 "http://127.0.0.1:$port/api/v1/plugins" | python3 -I -c 'import json,sys
+answer=$(curl -s -m 5 "http://127.0.0.1:$port/api/v1/plugins") || answer=""
+plugins=$(printf '%s' "$answer" | python3 -I -c 'import json,sys
 print(" ".join(sorted({m["metadata"]["name"] for m in json.load(sys.stdin)})))' 2>/dev/null)
 same "only the six enabled plugins are served" "$plugins" "BarChart Markdown Prometheus StatChart Table TimeSeriesChart"
 code=$(curl -s -o /dev/null -w '%{http_code}' -m 5 -X POST -H 'Content-Type: application/json' \

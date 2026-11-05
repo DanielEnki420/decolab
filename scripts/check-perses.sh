@@ -23,7 +23,8 @@ python3 -I -c 'import json, sys; sys.exit(0 if json.loads(sys.argv[1]).get("data
 # A Perses without dashboards is "healthy" and useless, for example when a
 # provisioning file no longer loads. Expected: every file in the repository.
 want=$(find "$decolab_root/config/perses/provisioning" -name 'dashboard-*.json' | wc -l | tr -d ' ')
-have=$(curl -sS -m 10 "$url/api/v1/projects/decolab/dashboards" 2>/dev/null |
+answer=$(curl -sS -m 10 "$url/api/v1/projects/decolab/dashboards" 2>/dev/null) || answer=""
+have=$(printf '%s' "$answer" |
   python3 -I -c 'import json, sys; print(len(json.load(sys.stdin)))' 2>/dev/null)
 [ "${have:-0}" = "$want" ] || check_fail "${have:-0} of $want dashboards loaded"
 check_ok "$have dashboards loaded"

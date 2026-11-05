@@ -60,3 +60,5 @@ README.md	Daniel
 README.md	Enki
 README.de.md	Daniel
 README.de.md	Enki
+SECURITY.md	Daniel
+SECURITY.md	Enki

@@ -4,7 +4,8 @@
 
 Please report security problems **privately**, through GitHub's private
 vulnerability reporting: the repository's *Security* tab, then *Report a
-vulnerability*. Do not open a public issue for them.
+vulnerability*
+(<https://github.com/DanielEnki420/decolab/security/advisories/new>). Do not open a public issue for them.
 
 Helpful in a report: the Decolab release, what an attacker needs (a device
 in the LAN, in the tailnet, a login on the Pi), and the steps to reproduce.

@@ -80,6 +80,35 @@ printf 'ok\n' > "$repo/n.txt"
 git -C "$repo" add n.txt
 git -C "$repo" commit -q --no-verify -m "fix for $mail"
 check "commit message is checked" 1 "commit-message" -- guard --history
+
+echo "history: what is published, not what was fetched"
+repo2=$t_tmp/repo2
+mkdir -p "$repo2/tools"
+cp "$t_root/tools/guard.sh" "$repo2/tools/"
+git -C "$repo2" init -q
+git -C "$repo2" config user.name test
+git -C "$repo2" config user.email test@example.com
+git -C "$repo2" add tools
+git -C "$repo2" commit -q --no-verify -m "clean"
+guard2() { (cd "$repo2" && tools/guard.sh "$@"); }
+check "a clean history is clean" 0 "clean (--history)" -- guard2 --history
+git -C "$repo2" checkout -q -b side
+printf 'x\n' > "$repo2/side.txt"
+git -C "$repo2" add side.txt
+git -C "$repo2" -c user.email="$mail" commit -q --no-verify -m "side"
+git -C "$repo2" checkout -q -
+git -C "$repo2" update-ref refs/remotes/origin/bot side
+git -C "$repo2" branch -q -D side
+check "a fetched branch of someone else is not scanned" 0 "clean (--history)" -- guard2 --history
+git -C "$repo2" branch -q mine origin/bot
+check "the same commit on an own branch is" 1 "author" -- guard2 --history
+git -C "$repo2" branch -q -D mine
+git -C "$repo2" tag rel origin/bot
+check "... and on a tag" 1 "author" -- guard2 --history
+git -C "$repo2" tag -d rel >/dev/null
+git -C "$repo2" checkout -q --detach origin/bot
+check "... and as the checked-out commit (CI)" 1 "author" -- guard2 --history
+git -C "$repo2" checkout -q -
 printf 'note %s\n' "$tailnet" > "$t_tmp/msg.txt"
 check "text mode" 1 "tailnet-ipv4" -- guard --text "$t_tmp/msg.txt"
 

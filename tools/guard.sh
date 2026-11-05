@@ -197,16 +197,22 @@ case $mode in
   staged) scan "" --cached ;;
   tree) scan "" --untracked ;;
   history)
-    revs=$(git rev-list --all)
+    # What this repository publishes: its own branches and tags, and the
+    # commit being checked (CI checks out a detached HEAD for pull requests).
+    # Not remote-tracking refs: they hold other people's work, like the
+    # branches of Dependabot's pull requests, which nobody pushes from here.
+    sel=(--branches --tags)
+    if git rev-parse -q --verify HEAD >/dev/null; then sel+=(HEAD); fi
+    revs=$(git rev-list "${sel[@]}")
     if [ -n "$revs" ]; then
       # shellcheck disable=SC2086  # one argument per revision
       scan "" $revs
-      git log --all --format='%H%n%B' > "$tmp/messages"
+      git log "${sel[@]}" --format='%H%n%B' > "$tmp/messages"
       scan_text commit-message "$tmp/messages"
       # Authors and committers become public with each commit. A GitHub
       # noreply address is the identity of the account that publishes, so
       # public anyway: exempt. Any other name or address is checked.
-      git log --all --format='%an <%ae>%n%cn <%ce>' | sort -u | noreply_out > "$tmp/authors"
+      git log "${sel[@]}" --format='%an <%ae>%n%cn <%ce>' | sort -u | noreply_out > "$tmp/authors"
       scan_text author "$tmp/authors"
     fi
     git for-each-ref --format='%(refname)' > "$tmp/refs"

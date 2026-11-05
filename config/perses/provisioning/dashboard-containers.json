@@ -1,0 +1,373 @@
+{
+ "kind": "Dashboard",
+ "metadata": {
+  "name": "containers",
+  "project": "decolab"
+ },
+ "spec": {
+  "display": {
+   "name": "Decolab — Containers"
+  },
+  "duration": "6h",
+  "variables": [],
+  "panels": {
+   "statObserved": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Observed containers"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "count(count by (name) (container_last_seen{name!=\"\"}))"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statOom": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "OOM events (24 h)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "sum(increase(container_oom_events_total[24h])) or vector(0)"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statRestarts": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Restarts (24 h)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "count(changes(container_start_time_seconds{name!=\"\"}[24h]) > 0) or vector(0)"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statMemory": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Memory of all containers"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "bytes",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "sum(container_memory_working_set_bytes{name!=\"\"})"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statScrapeDuration": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "cAdvisor scrape duration (s)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "seconds",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "scrape_duration_seconds{job=\"cadvisor\"}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendCpu": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "CPU per container (%)"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "decimal",
+         "decimalPlaces": 1
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "sum by (name) (rate(container_cpu_usage_seconds_total{name!=\"\"}[5m])) * 100",
+          "seriesNameFormat": "{{name}}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendMemory": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Memory per container"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "bytes"
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "sum by (name) (container_memory_working_set_bytes{name!=\"\"})",
+          "seriesNameFormat": "{{name}}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "tableMemory": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Containers: memory"
+     },
+     "plugin": {
+      "kind": "Table",
+      "spec": {
+       "density": "standard"
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "sum by (name) (container_memory_working_set_bytes{name!=\"\"})"
+         }
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "layouts": [
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": "Key figures"
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statObserved"
+       }
+      },
+      {
+       "x": 4,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statOom"
+       }
+      },
+      {
+       "x": 8,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statRestarts"
+       }
+      },
+      {
+       "x": 12,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statMemory"
+       }
+      },
+      {
+       "x": 16,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statScrapeDuration"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": "History"
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 12,
+       "height": 8,
+       "content": {
+        "$ref": "#/spec/panels/trendCpu"
+       }
+      },
+      {
+       "x": 12,
+       "y": 0,
+       "width": 12,
+       "height": 8,
+       "content": {
+        "$ref": "#/spec/panels/trendMemory"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": "Table"
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 24,
+       "height": 9,
+       "content": {
+        "$ref": "#/spec/panels/tableMemory"
+       }
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

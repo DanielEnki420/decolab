@@ -1,0 +1,52 @@
+# OLED status display (HW_OLED), installed as
+# /etc/systemd/system/decolab-oled.service.
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER} ${DECOLAB_DIR}
+#
+# decolab.conf is read as an EnvironmentFile (LAN_INTERFACE, BACKUP_DIR):
+# it is plain KEY=VALUE lines without quotes, which systemd reads as they are.
+#
+# Hardening, measured on the original system:
+# - NO ProcSubset=pid / ProtectProc=invisible: they hide /proc/stat, the
+#   CPU reading. The service passed its first check and crashed later.
+# - NO DevicePolicy=closed + DeviceAllow=/dev/i2c-1: the service ran but
+#   had lost /dev/i2c-1. The user is in group i2c instead.
+[Unit]
+Description=Decolab OLED status display
+After=multi-user.target
+
+[Service]
+Type=simple
+User=${DECOLAB_USER}
+SupplementaryGroups=i2c
+EnvironmentFile=${DECOLAB_DIR}/decolab.conf
+ExecStart=/usr/bin/python3 -I ${DECOLAB_DIR}/services/oled_display.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=-/run/decolab
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=default
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,50 @@
+# Uptime Kuma: receives the push heartbeats of all Decolab checks and alerts
+# when one stops arriving (dead man's switch).
+#
+# Start it LAST: it joins the networks of the other stacks (install.sh adds
+# them in a generated compose.networks.yml for the enabled modules only).
+# Pinned: the watcher itself is updated by hand.
+
+name: decolab-uptime-kuma
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2@sha256:e88415a90dd2f7efecdbc18de0490aff292764a3ac471531bf1d0481725591bd
+    container_name: uptime-kuma
+    restart: unless-stopped
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    mem_limit: 512m
+    security_opt: [no-new-privileges:true]
+    user: "${DECOLAB_UID}:${DECOLAB_GID}"
+    environment:
+      # SQLite, fixed: backup.sh copies kuma.db with SQLite's online backup.
+      # Embedded MariaDB (offered by the setup wizard) could not be backed up.
+      UPTIME_KUMA_DB_TYPE: sqlite
+    ports:
+      - "${WEB_UI_ADDRESS}:3001:3001"
+    # A directory, not a named volume: it belongs to DECOLAB_USER, so the
+    # backup reads it without root. install.sh creates it with that owner
+    # before the first start (Docker would create it for root, and Kuma
+    # running as DECOLAB_USER could not write).
+    volumes:
+      - ${DATA_DIR}/uptime-kuma:/app/data
+    # Resolve independently of Pi-hole: the watcher must not depend on what it watches.
+    dns:
+      - 8.8.8.8
+    networks:
+      default:
+        gw_priority: 1
+        # Fixed source address, so that its checks can be told apart (the
+        # host firewall lets containers reach only DNS on the host).
+        ipv4_address: 172.20.1.10
+
+networks:
+  # Outside DOCKER_ADDRESS_POOL on purpose: a stack started earlier could
+  # otherwise take this subnet from the pool and Kuma would not start.
+  default:
+    ipam:
+      config:
+        - subnet: 172.20.1.0/24

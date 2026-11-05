@@ -1,0 +1,10 @@
+# NUT (HW_UPS), installed as /etc/sudoers.d/decolab-nut (440 root:root).
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER} ${DECOLAB_DIR}
+#
+# nut may start EXACTLY this script as the Decolab user, and nothing as root.
+nut ALL=(${DECOLAB_USER}) NOPASSWD: ${DECOLAB_DIR}/scripts/ups-event.sh
+
+# The 30-minute limit on battery (upssched.conf, event battery-limit): the
+# Decolab user may ask upsmon for a forced shutdown, and nothing else as root.
+${DECOLAB_USER} ALL=(root) NOPASSWD: /usr/sbin/upsmon -c fsd

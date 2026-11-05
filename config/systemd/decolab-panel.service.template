@@ -1,0 +1,54 @@
+# Decolab panel (panel/server.py), installed as /etc/systemd/system/decolab-panel.service.
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER} ${DECOLAB_DIR} ${LAN_SUBNET}
+#
+# Read-only dashboard on WEB_UI_ADDRESS:PANEL_PORT. Runs as the Decolab user,
+# who is in the docker group (root in all but name), so the unit takes away
+# what the panel does not need:
+# - RestrictAddressFamilies without AF_UNIX: no way to the Docker socket.
+#   Container state comes from Prometheus over TCP instead.
+# - IPAddressAllow: talks only to this host (Prometheus, tailscale serve) and
+#   to the LAN (browsers when WEB_UI_ADDRESS=HOST_LAN_IP); nothing else.
+# - Read-only file system: the panel writes nothing.
+[Unit]
+Description=Decolab panel (read-only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${DECOLAB_USER}
+ExecStart=/usr/bin/python3 -I ${DECOLAB_DIR}/panel/server.py ${DECOLAB_DIR}/decolab.conf
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost ${LAN_SUBNET}
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+MemoryMax=96M
+TasksMax=64
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

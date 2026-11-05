@@ -1,0 +1,41 @@
+# Prometheus: what is scraped and which alert rules apply.
+#
+# Mounted read-only into the container. When you edit it, copy it in place
+# (cp, >), never with mv: a single-file bind mount follows the inode, and the
+# container would keep reading the old file.
+
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Host metrics, plus Decolab's own measurements: scripts write .prom files
+  # to /var/lib/node_exporter and the textfile collector serves them.
+  - job_name: node
+    static_configs:
+      - targets: ['node_exporter:9100']
+
+  # cAdvisor measures only every 30 s (--housekeeping_interval=30s), so a
+  # 15 s scrape would fetch every value twice. The dropped series are used by
+  # no dashboard, rule or script; together they are most of each scrape.
+  - job_name: cadvisor
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'container_(tasks_state|memory_failures_total|blkio_.+|fs_inodes_.+|fs_.+_merged_total|fs_io_.+|fs_sector_.+)'
+        action: drop
+
+  # Perses' own metrics, among them render errors per dashboard. Reachable
+  # over perses_net, the only network the two share.
+  - job_name: perses
+    scrape_interval: 60s
+    static_configs:
+      - targets: ['perses:8080']

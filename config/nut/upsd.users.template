@@ -1,0 +1,7 @@
+# NUT (HW_UPS), installed as /etc/nut/upsd.users (640 root:nut).
+#
+# install.sh renders this file with exactly these variables: ${UPSMON_PASSWORD}
+# The password is generated on the host and never stored in the repository.
+[upsmon]
+  password = ${UPSMON_PASSWORD}
+  upsmon primary

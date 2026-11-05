@@ -1,0 +1,11 @@
+# Directories Decolab's scripts write to, installed as
+# /etc/tmpfiles.d/decolab.conf (systemd-tmpfiles creates them at every boot).
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER}
+#
+# /run/decolab is a tmpfs on purpose: the maintenance flag must not survive a
+# reboot, it could match a PID that has long been reused.
+d /run/decolab           0755 ${DECOLAB_USER} ${DECOLAB_USER} -
+d /var/log/decolab       0750 ${DECOLAB_USER} ${DECOLAB_USER} -
+d /var/lib/node_exporter 0755 ${DECOLAB_USER} ${DECOLAB_USER} -
+d /var/lib/decolab       0750 ${DECOLAB_USER} ${DECOLAB_USER} -

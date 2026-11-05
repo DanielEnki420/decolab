@@ -1,0 +1,14 @@
+# Self-healing watcher (scripts/watchdog.sh), started by decolab-watchdog.timer.
+# Installed as /etc/systemd/system/decolab-watchdog.service; runs as root:
+# it restarts containers and hands root-owned log files back.
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_DIR}
+[Unit]
+Description=Decolab watchdog
+After=docker.service network-online.target
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=${DECOLAB_DIR}/scripts/watchdog.sh
+TimeoutStartSec=600

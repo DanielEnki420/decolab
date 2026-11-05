@@ -1,0 +1,36 @@
+Decolab
+Copyright (c) 2026 Daniel Enki
+
+Decolab is dual-licensed under either of
+
+  * MIT License (LICENSE-MIT)
+  * Apache License, Version 2.0 (LICENSE-APACHE)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this project, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+
+Third-party material
+--------------------
+
+Decolab does not ship the software it installs. Pi-hole, Unbound, Immich,
+Vaultwarden, Portainer, Prometheus, Perses, Uptime Kuma and the other services
+are pulled as container images from their publishers and remain under their
+own licenses. Their names are used only to say what Decolab sets up; Decolab
+is not affiliated with or endorsed by any of these projects.
+
+Bundled third-party files are listed below with origin and license. Every file
+added to this repository that was not written for Decolab must get an entry
+here before it is committed.
+
+  panel/static/fonts/cinzel-600.woff2
+    Cinzel, weight 600 (subset), by The Cinzel Project Authors
+    (https://github.com/NDISCOVER/Cinzel).
+    SIL Open Font License 1.1; full text in panel/static/fonts/OFL.txt.
+
+The panel's logo (panel/static/icons/eqv-logo.webp, eqv-ring.svg, the
+favicons) and its line icons (panel/static/icons/ui.svg) were made for
+Decolab's original system and are covered by Decolab's own license. The
+panel shows no logos of the services it links to.

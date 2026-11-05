@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# pre-commit: nothing personal and no secret may enter the repository.
+set -euo pipefail
+root=$(git rev-parse --show-toplevel)
+# DECOLAB_GITLEAKS only lets tests point at another binary; a missing binary
+# makes the commit fail, it never skips the scan.
+gitleaks=${DECOLAB_GITLEAKS:-gitleaks}
+
+"$root/tools/guard.sh" --staged
+
+if ! command -v "$gitleaks" >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed; refusing to commit without the secret scan." >&2
+  echo "pre-commit: install it (macOS: brew install gitleaks) and commit again." >&2
+  exit 1
+fi
+"$gitleaks" git --pre-commit --staged --redact --no-banner --log-level warn "$root"

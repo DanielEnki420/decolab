@@ -1,0 +1,100 @@
+# Decolab configuration
+#
+# Copy this file to decolab.conf and adjust it, then run:
+#   bin/decolab-config check decolab.conf
+#
+# Format rules (checked, because shell, systemd, Docker Compose and the
+# Rust tools must all read this file the same way):
+#   - one KEY=VALUE per line, nothing before the key, no spaces around "="
+#   - no quotes, no spaces, no $, no inline comments; comments on their own line
+#   - allowed characters in values: letters, digits and . _ / : @ + , -
+#   - every key from config/schema.txt exactly once
+#
+# This file holds no secrets. install.sh generates passwords and keys into
+# SECRETS_DIR. The addresses below are documentation examples (192.0.2.0/24):
+# replace them with your own network.
+
+# --- System ------------------------------------------------------------------
+
+# Linux user that owns the Decolab files (not root)
+DECOLAB_USER=pi
+# Where this repository lives on the Pi
+DECOLAB_DIR=/opt/decolab
+# Data disk (NVMe) for photos, databases and shares
+DATA_DIR=/mnt/data
+# Generated secrets, mode 700; must not be inside DECOLAB_DIR
+SECRETS_DIR=/etc/decolab/secrets
+TZ=Europe/Berlin
+
+# --- Network -----------------------------------------------------------------
+
+LAN_INTERFACE=eth0
+LAN_SUBNET=192.0.2.0/24
+# Fixed address of the Pi in the LAN (reserve it in your router)
+HOST_LAN_IP=192.0.2.10
+SSH_PORT=22
+# Pool for Docker networks; must not overlap LAN_SUBNET; prefix /24 or larger.
+# Decolab's own fixed networks use 172.20.0.0/23: neither the LAN nor the pool
+# may overlap it.
+DOCKER_ADDRESS_POOL=10.210.0.0/16
+# Where the web interfaces (Pi-hole, Portainer, Immich, Uptime Kuma) listen:
+# 127.0.0.1 = only through tailscale serve or an SSH tunnel (recommended),
+# HOST_LAN_IP = reachable from the whole LAN (then also set HARDENING=yes).
+WEB_UI_ADDRESS=127.0.0.1
+# Port of Decolab's own panel (read-only dashboard) on WEB_UI_ADDRESS
+PANEL_PORT=8090
+
+# --- Remote access -----------------------------------------------------------
+
+# yes = reach the web interfaces over HTTPS through tailscale serve.
+# Vaultwarden needs it: its web vault only works over HTTPS.
+TAILSCALE=yes
+# The part before .ts.net of your tailnet; install.sh checks it against tailscale
+TAILNET_NAME=tail1234
+
+# --- Modules -----------------------------------------------------------------
+
+MODULE_IMMICH=yes
+MODULE_VAULTWARDEN=yes
+MODULE_UPTIME_KUMA=yes
+
+# --- Raspberry Pi 5 hardware (auto = use it if detected) ---------------------
+
+HW_FAN=auto
+HW_OLED=auto
+HW_NVME=auto
+HW_UPS=auto
+
+# --- Internet speed test -----------------------------------------------------
+
+# yes = measure the internet speed every 6 hours (librespeed-cli, servers in
+# config/speedtest-servers.json). One run moves about 1 GB on a 1 Gbit/s
+# line, four runs a day: set no on a metered connection.
+SPEEDTEST=yes
+
+# --- Host hardening ----------------------------------------------------------
+
+# yes = kernel hardening, and a firewall plus SSH hardening that you switch
+# on yourself, on trial: "sudo bin/decolab-firewall apply", then "confirm"
+# from a NEW SSH login within 5 minutes, or it switches itself off again.
+# Way back at any time: "sudo bin/decolab-firewall off", or a file named
+# decolab-firewall-off on the SD card's boot partition.
+HARDENING=no
+# no = with the firewall's apply, SSH takes keys only (PasswordAuthentication
+# no). The NEW login that confirms proves your key works; without a confirm
+# passwords come back after 5 minutes. Needs a key in ~/.ssh/authorized_keys.
+SSH_PASSWORDS=yes
+
+# --- Backups -----------------------------------------------------------------
+
+BACKUP_DIR=/mnt/data/backups
+BACKUP_KEEP_DAYS=7
+# Optional second copy on a USB disk
+USB_BACKUP_DIR=
+# Optional off-site copy, for example sftp:backup@storage.example.com:/decolab
+RESTIC_REPOSITORY=
+
+# --- Notifications -----------------------------------------------------------
+
+# telegram = bot token and chat id are asked for by install.sh (kept in SECRETS_DIR)
+NOTIFY=none

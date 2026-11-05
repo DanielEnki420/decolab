@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# decolab-checkout vX.Y.Z - switch this checkout to a release, only if its
+# tag is signed by a release key.
+#
+# Root runs scripts from this checkout (cron, the watchdog): a tag pushed
+# with a stolen account must never be checked out. The keys come from
+# /etc/decolab/release-signers, which install.sh placed from a release you
+# already trusted; never from the tag being checked.
+#
+# Then: ./install.sh, scripts/update.sh --dry-run, scripts/update.sh
+# Test hooks: DECOLAB_RELEASE_SIGNERS, DECOLAB_CHECKOUT_FETCH=no.
+set -euo pipefail
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+signers=${DECOLAB_RELEASE_SIGNERS:-/etc/decolab/release-signers}
+die() { echo "decolab-checkout: $*" >&2; exit 1; }
+
+tag=${1:-}
+[[ $tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { sed -n '2,3s/^# \{0,1\}//p' "$0" >&2; exit 2; }
+grep -qE '^[^#[:space:]]' "$signers" 2>/dev/null || die "no release key in $signers: run install.sh from a release first"
+[ "${DECOLAB_CHECKOUT_FETCH:-yes}" = no ] || git -C "$root" fetch --quiet --tags origin || die "git fetch failed"
+git -C "$root" rev-parse -q --verify "refs/tags/$tag" >/dev/null || die "no tag $tag"
+# refs/tags/: a branch of the same name would otherwise win
+if ! out=$(git -C "$root" -c gpg.ssh.allowedSignersFile="$signers" verify-tag "refs/tags/$tag" 2>&1); then
+  die "$tag is not signed by a key in $signers: not checked out ($(printf '%s' "$out" | tail -1))"
+fi
+git -C "$root" checkout --quiet --detach "refs/tags/$tag" || die "git checkout $tag failed"
+echo "checked out $tag (signature good). Next: ./install.sh, then scripts/update.sh --dry-run"

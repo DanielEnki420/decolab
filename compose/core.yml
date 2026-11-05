@@ -1,0 +1,379 @@
+# Decolab core stack: DNS, monitoring, management, NAS.
+#
+# Started by Decolab's tools with three env files (never by hand without them):
+#   docker compose --env-file decolab.conf \
+#                  --env-file $SECRETS_DIR/runtime.env \
+#                  --env-file $SECRETS_DIR/compose-secrets.env \
+#                  -f compose/core.yml up -d
+# decolab.conf holds the settings, runtime.env the values install.sh measured on
+# this host (DECOLAB_UID, DECOLAB_GID, DOCKER_GID), compose-secrets.env the
+# generated passwords.
+#
+# Hardening pattern used throughout: drop all capabilities and add back only
+# what was measured to be needed, no-new-privileges, read-only root file
+# systems with explicit tmpfs, non-root users, memory limits. Images are pinned
+# by digest: updates arrive as tested Decolab releases, not at random times.
+
+name: decolab
+
+services:
+
+  # Docker API for Portainer and Watchtower. Whoever can write to the Docker
+  # socket is effectively root on the host; the proxy's rules are the only
+  # limit. POST=1 is needed to update and manage containers.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    container_name: socket-proxy
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    # Non-root, but in the docker group: the socket is root:docker 660.
+    # haproxy needs both tmpfs (pid file in /run, generated config in /tmp),
+    # owned by the same user, or it does not start.
+    user: "${DECOLAB_UID}:${DOCKER_GID}"
+    read_only: true
+    tmpfs:
+      - /run:rw,nosuid,nodev,size=8m,uid=${DECOLAB_UID},gid=${DOCKER_GID}
+      - /tmp:rw,nosuid,nodev,size=8m,uid=${DECOLAB_UID},gid=${DOCKER_GID}
+    environment:
+      CONTAINERS: 1
+      SERVICES: 1
+      TASKS: 1
+      INFO: 1
+      NETWORKS: 1
+      VOLUMES: 1
+      IMAGES: 1
+      STATS: 1
+      POST: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [socket_net]
+
+  # Recursive, DNSSEC-validating resolver. Pi-hole forwards only to it, so no
+  # DNS provider sees the household's queries.
+  unbound:
+    image: madnuttah/unbound:1.26.2-0@sha256:e122f1fb49f2499d2932cee74bb998c60e6141844485cd54fa3c6ad31ce131cb
+    container_name: unbound
+    restart: unless-stopped
+    # The entrypoint starts as root and switches to UNBOUND_UID: SETUID/SETGID,
+    # CHOWN/FOWNER/DAC_OVERRIDE for the writable config files, KILL so that
+    # tini (root) can signal unbound (without it, docker stop takes the full
+    # 10 s timeout). Port 5335 needs no NET_BIND_SERVICE.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE, FOWNER, KILL]
+    security_opt: [no-new-privileges:true]
+    # Must hold the caches configured in unbound.conf (96 MB) plus overhead.
+    mem_limit: 192m
+    environment:
+      # unbound starts directly as this user, so username and chroot stay
+      # empty in unbound.conf (a second privilege drop would fail).
+      UNBOUND_UID: ${DECOLAB_UID}
+      UNBOUND_GID: ${DECOLAB_GID}
+      TZ: ${TZ}
+    healthcheck:
+      test: ["CMD", "/usr/local/unbound/sbin/healthcheck.sh"]
+      interval: 30s
+      timeout: 30s
+      start_period: 15s
+      retries: 3
+    volumes:
+      # read-only: the file is in the checkout; a compromised Unbound must not
+      # be able to turn off DNSSEC or forward the household's DNS for good
+      - ${DECOLAB_DIR}/config/unbound/unbound.conf:/usr/local/unbound/unbound.conf:ro
+      - ${DATA_DIR}/unbound/conf.d:/usr/local/unbound/conf.d:rw
+      - ${DATA_DIR}/unbound/var:/usr/local/unbound/var:rw
+    networks:
+      dns_net:
+        ipv4_address: 172.20.0.2
+
+  pihole:
+    image: pihole/pihole:latest@sha256:30f803ad5dd60ff96cc0a63008a2e9271af481c1b0399a182192b2e91152c1f9
+    container_name: pihole
+    restart: unless-stopped
+    # start.sh runs as root, pihole-FTL switches to its own user. SETFCAP is
+    # required: start.sh sets file capabilities on the FTL binary and aborts
+    # without it (restart loop, no DNS). With cap_drop ALL the bounding set
+    # still limits what those file capabilities can grant.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE, FOWNER, KILL, SETFCAP]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    environment:
+      TZ: ${TZ}
+      # Pi-hole v6 names. The v5 names (WEBPASSWORD, PIHOLE_DNS_) are ignored
+      # by v6: a fresh install would get a random password.
+      FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD}
+      FTLCONF_dns_upstreams: "172.20.0.2#5335"
+      # Behind Docker's bridge every LAN client is "non-local" to the
+      # container: the default (LOCAL) ignores them all (seen on a fresh
+      # install). Who reaches port 53 at all is the firewall's job.
+      FTLCONF_dns_listeningMode: "ALL"
+      # Pi-hole's files belong to DECOLAB_USER (measured: every file in
+      # /etc/pihole), so the backup reads them without root.
+      PIHOLE_UID: ${DECOLAB_UID}
+      PIHOLE_GID: ${DECOLAB_GID}
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "${WEB_UI_ADDRESS}:8053:80/tcp"
+    volumes:
+      - ${DATA_DIR}/pihole:/etc/pihole
+    networks:
+      dns_net:
+        ipv4_address: 172.20.0.3
+
+  portainer:
+    image: portainer/portainer-ce@sha256:03f94a406496dc84d37b552795fc424ccad8d0d7200353b6a82915f6e8f73ab0  # 2.45.2 LTS
+    container_name: portainer
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    # Portainer keeps its state in /data; the root file system stays
+    # unchanged (measured with docker diff). /tmp buffers uploads.
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    # Talks to the socket proxy over TCP, so no docker group is needed. The
+    # data directory must belong to this user, or Portainer silently starts
+    # with an empty database.
+    user: "${DECOLAB_UID}:${DECOLAB_GID}"
+    environment:
+      DOCKER_HOST: tcp://socket-proxy:2375
+    ports:
+      - "${WEB_UI_ADDRESS}:9000:9000"
+    volumes:
+      - ${DATA_DIR}/portainer:/data
+    networks: [proxy_net, socket_net]
+    depends_on: [socket-proxy]
+
+  prometheus:
+    image: prom/prometheus@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e  # v3.15.0
+    container_name: prometheus
+    restart: unless-stopped
+    # The image runs as nobody (65534); install.sh creates the data directory
+    # for DECOLAB_USER, so Prometheus runs as that user.
+    user: "${DECOLAB_UID}:${DECOLAB_GID}"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    # Prometheus sets GOMEMLIMIT to ~94 % of the limit; at 512m it was
+    # constantly collecting garbage under pressure, and long dashboard queries
+    # came close to an OOM kill.
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      # One year of history; the size limit is only an emergency brake.
+      - '--storage.tsdb.retention.time=1y'
+      - '--storage.tsdb.retention.size=25GB'
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ${DATA_DIR}/prometheus:/prometheus
+      - ${DECOLAB_DIR}/config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${DECOLAB_DIR}/config/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+    networks: [monitoring_net, perses_net]
+
+  node_exporter:
+    image: prom/node-exporter@sha256:c9ef89f9464f09e7234decaae68a80ab856ff0014435677a99fd48b03dd410ea
+    container_name: node_exporter
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    pid: host
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      # rslave: a disk mounted after the container started is seen as well.
+      - /:/rootfs:ro,rslave
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      # Without it, free space is measured inside the container's own file
+      # system: right only if everything lives on one disk.
+      - '--path.rootfs=/rootfs'
+      # Decolab's own measurements (backups, UPS, speed tests) arrive as .prom files here.
+      - '--collector.textfile.directory=/rootfs/var/lib/node_exporter'
+    networks: [monitoring_net]
+
+  # Read-only Docker API, only for cAdvisor. A second proxy because the
+  # fine-grained switches of the first one (ALLOW_STOP=0 and friends) are
+  # extra permissions, not prohibitions: with POST=1, stop and create pass.
+  # Only POST=0 closes the whole category (measured: stop and create -> 403).
+  socket-proxy-ro:
+    image: tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    container_name: socket-proxy-ro
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    user: "${DECOLAB_UID}:${DOCKER_GID}"
+    read_only: true
+    tmpfs:
+      - /run:rw,nosuid,nodev,size=8m,uid=${DECOLAB_UID},gid=${DOCKER_GID}
+      - /tmp:rw,nosuid,nodev,size=8m,uid=${DECOLAB_UID},gid=${DOCKER_GID}
+    environment:
+      POST: 0        # the actual lock
+      CONTAINERS: 1  # /containers/json and /containers/{id}/json
+      INFO: 1
+      VERSION: 1
+      PING: 1        # the Docker Go client negotiates the API version here
+      EVENTS: 0      # cAdvisor finds new containers through cgroups, not events
+    # cAdvisor asks once, at its start; a proxy that only started a moment
+    # ago is not listening yet (seen on a fresh install). Healthy = answers.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      start_interval: 1s
+      retries: 3
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [socket_ro_net]
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor@sha256:b8e7d1093144fd088f425ff003d75a4aa405de075db78dae3bc563730b1bd07a  # v0.60.6
+    container_name: cadvisor
+    restart: unless-stopped
+    mem_limit: 256m
+    # Usually run with privileged: true (all capabilities and the Docker
+    # socket) and / mounted as /rootfs. None of that is needed. Mounted is
+    # only what the metrics read: DAC_READ_SEARCH below reads every file in
+    # these mounts, so never / (secrets, Tailscale's key) and never all of
+    # /var/lib/docker (containers/*/config.v2.json holds their environment).
+    # So cAdvisor logs "could not stat /var/lib/docker/containers/...": the
+    # size of the containers' logs is not measured, everything else is.
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    # Only to count inodes in overlay2 diff directories. Without it just the
+    # container_fs_* metrics vanish, silently. Do not replace with the much
+    # broader DAC_OVERRIDE.
+    cap_add: [DAC_READ_SEARCH]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+      - /run:rw,noexec,nosuid,nodev,size=8m
+    devices:
+      # OOM events (container_oom_events_total). Readable while
+      # kernel.dmesg_restrict=0; with 1 it would also need cap_add SYSLOG,
+      # otherwise OOM events are missing without any error.
+      - /dev/kmsg
+    command:
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+      - "--docker=tcp://socket-proxy-ro:2375"
+      # Without ~19 Docker labels on every series (~800 KB per scrape).
+      # Nothing in Decolab uses container_label_*; name and image remain.
+      - "--store_container_labels=false"
+    volumes:
+      - /sys:/sys:ro
+      - /dev/disk:/dev/disk:ro
+      # the layer of each container (mount-id) and its overlay2 directory
+      - /var/lib/docker/image:/var/lib/docker/image:ro
+      - /var/lib/docker/overlay2:/var/lib/docker/overlay2:ro
+    # Only honoured by "compose up": there cAdvisor waits until the proxy
+    # answers. After a host reboot Docker starts containers in any order;
+    # cAdvisor may then miss the proxy once and report almost no containers
+    # while looking healthy. scripts/check-cadvisor-coverage.sh catches that.
+    depends_on:
+      socket-proxy-ro: {condition: service_healthy}
+    networks: [monitoring_net, socket_ro_net]
+
+  # Dashboards. Read-only UI; dashboards and the data source come only from
+  # config/perses/provisioning (git). Three locks keep it safe without a login:
+  # security.readonly, the data source's allowedEndpoints and
+  # datasource.proxy.allowed_hosts=[prometheus]. readonly alone leaves
+  # POST /proxy/unsaved/... open, which reaches any host in the Docker network.
+  perses:
+    image: persesdev/perses@sha256:bda9946544da8086cfd2e34d586ca17036b1e8f53b4a52530773bc5b93f721c0  # v0.55.0-distroless
+    container_name: perses
+    restart: unless-stopped
+    # The image's own non-root user; its plugin directory belongs to 65532.
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs:
+      # The "database" only caches the provisioning files: no state outside git.
+      - /perses/db:rw,noexec,nosuid,nodev,size=16m,uid=65532,gid=65532
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,uid=65532,gid=65532
+    mem_limit: 256m
+    pids_limit: 64
+    cpus: 1.0
+    # No healthcheck: distroless has no shell, wget or curl. Watched from
+    # outside (Prometheus scrapes /metrics, scripts/check-perses.sh).
+    command: ["--config=/etc/perses/config.yaml", "--log.level=warning"]
+    ports:
+      - "127.0.0.1:8800:8080"
+    volumes:
+      - ${DECOLAB_DIR}/config/perses/config.yaml:/etc/perses/config.yaml:ro
+      - ${DECOLAB_DIR}/config/perses/provisioning:/perses/provisioning:ro
+      # Unpacked plugins (~270 MB): too big for tmpfs, regenerated at will.
+      # After an image change: docker volume rm decolab_perses_plugins
+      - perses_plugins:/etc/perses/plugins
+    # Only Prometheus shares this network. If Perses itself were taken over,
+    # it could not reach cAdvisor (reads the host) or any other container.
+    networks: [perses_net]
+
+  samba:
+    image: crazymax/samba@sha256:02451db54183ac6a57bf49590cf0724d6d70648bdc71d8cece99c5e928c50453
+    container_name: samba
+    restart: unless-stopped
+    # smbd switches to the logged-in user for every file operation
+    # (SETUID/SETGID, without them every access fails while the service looks
+    # fine). CHOWN/FOWNER/DAC_OVERRIDE for the shares, KILL for s6.
+    # SYS_ADMIN would only be needed for vfs acl_xattr (NT ACLs); the config
+    # uses fruit streams_xattr, which writes user.* attributes.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE, FOWNER, KILL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    ports:
+      - "139:139"
+      - "445:445"
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ${DATA_DIR}/nas:/mount
+      # Named volume: the image declares VOLUME /data, which would otherwise
+      # leave an orphaned anonymous volume behind at every re-create. Runtime
+      # state only; users are created from config.yml at every start.
+      - samba_data:/data
+      # Rendered by install.sh from config/samba/samba.yml.template
+      - ${SECRETS_DIR}/samba.yml:/data/config.yml:ro
+      - ${SECRETS_DIR}/samba_password:/run/secrets/samba_password:ro
+    networks: [proxy_net]
+
+networks:
+  # Fixed, because Pi-hole forwards to Unbound by address. bin/decolab-config
+  # rejects a LAN or Docker pool that overlaps it.
+  dns_net:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+  proxy_net:
+  monitoring_net:
+  # Not "internal": an internal network could not publish Perses' port.
+  perses_net:
+  socket_net:
+    internal: true
+  socket_ro_net:
+    internal: true
+
+volumes:
+  samba_data:
+  perses_plugins:

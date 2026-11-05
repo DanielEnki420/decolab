@@ -1,0 +1,40 @@
+# Vaultwarden (passwords). Module: MODULE_VAULTWARDEN=yes, needs TAILSCALE=yes:
+# the web vault only works over HTTPS, which tailscale serve provides.
+#
+# Updated by hand only. Env files: decolab.conf, runtime.env
+# (VAULTWARDEN_DOMAIN, measured from tailscale) and $SECRETS_DIR/vaultwarden.env
+# (ADMIN_TOKEN as an Argon2 hash, never the plain token).
+
+name: decolab-vaultwarden
+
+services:
+  vaultwarden:
+    image: vaultwarden/server@sha256:efb3cde962015fcc036b2ea625242248611943b27212ebf4392841fb30fad055  # 1.37.4
+    container_name: vaultwarden
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    mem_limit: 256m
+    security_opt: [no-new-privileges:true]
+    user: "${DECOLAB_UID}:${DECOLAB_GID}"
+    cap_drop: [ALL]
+    # Port 80 inside the container without NET_BIND_SERVICE
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
+    ports:
+      # Loopback only; tailscale serve publishes it as HTTPS in the tailnet.
+      - "127.0.0.1:8500:80"
+    volumes:
+      - ${DATA_DIR}/vaultwarden:/data
+    env_file:
+      - ${SECRETS_DIR}/vaultwarden.env
+    environment:
+      # No public sign-up; accounts are invited from the admin page.
+      SIGNUPS_ALLOWED: "false"
+      SIGNUPS_VERIFY: "false"
+      WEBSOCKET_ENABLED: "true"
+      PASSWORD_ITERATIONS: "600000"
+      DOMAIN: "https://${VAULTWARDEN_DOMAIN}:8500"
+      LOG_LEVEL: "info"
+      LOG_FILE: "/data/vaultwarden.log"

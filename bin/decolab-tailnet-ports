@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# decolab-tailnet-ports TAILNET-IP - which ports of THIS host one device of
+# your tailnet may reach.
+#
+# Why: the Tailscale admin console shows rules, not what this node really
+# enforces. The packet filter in the netmap is the truth: it is what this
+# host applies. In the original system this showed that a shared device
+# could reach ports 0-65535 while the console looked harmless.
+set -uo pipefail
+ip=${1:?usage: decolab-tailnet-ports TAILNET-IP}
+netmap=$(tailscale debug netmap 2>/dev/null) || { echo "tailscale debug netmap failed (is Tailscale running?)" >&2; exit 1; }
+printf '%s' "$netmap" | python3 -I -c '
+import ipaddress, json, sys
+try:
+    ip = ipaddress.ip_address(sys.argv[1])
+except ValueError:
+    sys.exit("not an IP address: " + sys.argv[1])
+try:
+    pf = json.load(sys.stdin).get("PacketFilter") or []
+except ValueError:
+    sys.exit("the netmap is no JSON")
+spans = set()
+for rule in pf:
+    hit = False
+    for src in rule.get("Srcs") or []:
+        try:
+            if ip in ipaddress.ip_network(src, strict=False):
+                hit = True
+                break
+        except ValueError:
+            if src == "*":
+                hit = True
+                break
+    if not hit:
+        continue
+    for dst in rule.get("Dsts") or []:
+        p = dst.get("Ports") if isinstance(dst, dict) else None
+        if p:
+            spans.add((p.get("First"), p.get("Last")))
+if not spans:
+    print("none")
+for a, b in sorted(spans):
+    print(f"{a}-{b}" if a != b else str(a))
+' "$ip"

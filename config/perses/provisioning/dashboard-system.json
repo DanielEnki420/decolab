@@ -1,0 +1,569 @@
+{
+ "kind": "Dashboard",
+ "metadata": {
+  "name": "system",
+  "project": "decolab"
+ },
+ "spec": {
+  "display": {
+   "name": "Decolab — System"
+  },
+  "duration": "6h",
+  "variables": [],
+  "panels": {
+   "statCpuTemp": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "CPU temperature (°C)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 1
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "max(node_hwmon_temp_celsius{chip=~\".*thermal.*\"}) or max(node_hwmon_temp_celsius)"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statFan": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Fan (RPM)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "decolab_fan_rpm"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statSocPower": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "SoC power (W)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 2
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "decolab_soc_power_watts"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statLoad": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Load (1 min)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 2
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "node_load1"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statFreeSpace": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Free space /"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "bytes",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "node_filesystem_avail_bytes{mountpoint=\"/\"}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statUptime": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Uptime"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "seconds",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "time() - node_boot_time_seconds"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendCpu": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "CPU usage by mode (%)"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "decimal",
+         "decimalPlaces": 1
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "sum by (mode) (rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) / on() group_left count(count by (cpu) (node_cpu_seconds_total)) * 100",
+          "seriesNameFormat": "{{mode}}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendMemory": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Memory"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "bytes"
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "seriesNameFormat": "Used"
+         }
+        }
+       }
+      },
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "node_memory_MemAvailable_bytes",
+          "seriesNameFormat": "Available"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendTemperatures": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Temperatures (°C)"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "decimal",
+         "decimalPlaces": 1
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "node_hwmon_temp_celsius",
+          "seriesNameFormat": "{{chip}}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendFan": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Fan speed (RPM)"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "decimal"
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "decolab_fan_rpm",
+          "seriesNameFormat": "Speed"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendNetwork": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Network (B/s)"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "bytes"
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "rate(container_network_receive_bytes_total{id=\"/\",interface!~\"lo|docker.*|veth.*|br-.*|tailscale.*\"}[5m])",
+          "seriesNameFormat": "Receive {{interface}}"
+         }
+        }
+       }
+      },
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "rate(container_network_transmit_bytes_total{id=\"/\",interface!~\"lo|docker.*|veth.*|br-.*|tailscale.*\"}[5m])",
+          "seriesNameFormat": "Send {{interface}}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "trendSocPower": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "SoC power (W)"
+     },
+     "plugin": {
+      "kind": "TimeSeriesChart",
+      "spec": {
+       "legend": {
+        "position": "bottom"
+       },
+       "yAxis": {
+        "format": {
+         "unit": "decimal",
+         "decimalPlaces": 2
+        }
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "decolab_soc_power_watts",
+          "seriesNameFormat": "SoC"
+         }
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "layouts": [
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": "Key figures"
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statCpuTemp"
+       }
+      },
+      {
+       "x": 4,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statFan"
+       }
+      },
+      {
+       "x": 8,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statSocPower"
+       }
+      },
+      {
+       "x": 12,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statLoad"
+       }
+      },
+      {
+       "x": 16,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statFreeSpace"
+       }
+      },
+      {
+       "x": 20,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statUptime"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": "History"
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 12,
+       "height": 7,
+       "content": {
+        "$ref": "#/spec/panels/trendCpu"
+       }
+      },
+      {
+       "x": 12,
+       "y": 0,
+       "width": 12,
+       "height": 7,
+       "content": {
+        "$ref": "#/spec/panels/trendMemory"
+       }
+      },
+      {
+       "x": 0,
+       "y": 7,
+       "width": 12,
+       "height": 7,
+       "content": {
+        "$ref": "#/spec/panels/trendTemperatures"
+       }
+      },
+      {
+       "x": 12,
+       "y": 7,
+       "width": 12,
+       "height": 7,
+       "content": {
+        "$ref": "#/spec/panels/trendFan"
+       }
+      },
+      {
+       "x": 0,
+       "y": 14,
+       "width": 12,
+       "height": 7,
+       "content": {
+        "$ref": "#/spec/panels/trendNetwork"
+       }
+      },
+      {
+       "x": 12,
+       "y": 14,
+       "width": 12,
+       "height": 7,
+       "content": {
+        "$ref": "#/spec/panels/trendSocPower"
+       }
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,89 @@
+# Decolab
+
+*Esse quam videri* (to be, rather than to seem).
+
+Decolab turns a Raspberry Pi 5 into a self-hosted home server that **proves** it
+works instead of just looking healthy. Backups are restored automatically and
+checked. Monitors check that each service does its job, not only that the
+container is up. Defaults are hardened. The dashboard has an Art Deco look.
+
+> **Status: stage 1, before the first release.** The project is extracted
+> from a private homelab that runs in daily use. Until the first release,
+> expect breaking changes, and test it on a spare Pi. **arm64 only**
+> (Raspberry Pi 5).
+
+[Deutsche Kurzfassung](README.de.md)
+
+## What it will set up
+
+| Area | Services |
+|---|---|
+| DNS | Pi-hole with Unbound (recursive, DNSSEC-validating) |
+| Monitoring | Prometheus, node_exporter, cAdvisor, Perses dashboards, Uptime Kuma |
+| Management | Portainer and Watchtower, both behind a Docker socket proxy |
+| Storage | Samba NAS share |
+| Optional modules | Immich (photos), Vaultwarden (passwords) |
+| Pi 5 hardware | Fan control, OLED status display, NVMe health, UPS via NUT (detected automatically) |
+
+The software above is pulled as container images from each publisher. Decolab
+does not ship it and is not affiliated with any of these projects (see [NOTICE](NOTICE)).
+
+## Documentation
+
+| | |
+|---|---|
+| [INSTALL.md](INSTALL.md) | from an empty Pi to a running system |
+| [RESTORE.md](RESTORE.md) | rebuilding from a backup, and going back after an update |
+| [docs/security.md](docs/security.md) | what Decolab protects against, and what it does not |
+| [docs/schedule.md](docs/schedule.md) | what runs when |
+| [docs/panel.md](docs/panel.md) | the read-only dashboard and its API |
+| [docs/metrics.md](docs/metrics.md) | Decolab's own Prometheus metrics |
+| [SECURITY.md](SECURITY.md) | reporting a vulnerability |
+
+## Principles
+
+1. **Correctness over reachability.** A check counts only if it would fail
+   when the service stops doing its job.
+2. **Backups are tested.** Every night a restore probe restores the newest
+   backup in isolation and checks that it gives a usable service.
+3. **Allow lists, not deny lists.** Firewall rules, copied files and network
+   access are listed positively.
+4. **Nothing hidden in the configuration.** One plain `KEY=VALUE` file
+   ([decolab.conf.example](decolab.conf.example)), validated before use, never
+   executed. Secrets are generated at install time and stay outside the repository.
+5. **No change without a way back.** Hardening steps are opt-in and reversible.
+
+## Roadmap
+
+| Stage | Content |
+|---|---|
+| 1 | Shell/Python extract of the proven setup, install script, contract tests, VM rebuild test |
+| 2 | Dashboard rewritten in Rust (single binary, same design) |
+| 3 | Watchers, backups and setup wizard in Rust |
+
+## Development
+
+```bash
+tools/setup-dev.sh        # installs the git hooks (needs git, gitleaks)
+tools/check.sh            # everything CI runs: shellcheck, guard, gitleaks, tests
+tests/run.sh              # only the contract tests (need Docker)
+bin/decolab-config check decolab.conf.example
+```
+
+Every commit passes through `tools/guard.sh` and gitleaks. The guard rejects
+private and public IP addresses, MAC addresses, UUIDs, personal paths, e-mail
+addresses and a personal word list, in files and in commit messages. The
+tests are contract tests: they check what a script promises (its output, its
+files, its HTTP API), not how it is written, so they stay valid when parts
+are rewritten in Rust. Examples
+use the documentation ranges `192.0.2.0/24` and `2001:db8::/32`.
+
+## Support
+
+Decolab is provided as is, without support or warranty. Security issues:
+see [SECURITY.md](SECURITY.md).
+
+## License
+
+Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE),
+at your option.

@@ -1,0 +1,15 @@
+{
+  "name": "Decolab",
+  "short_name": "Decolab",
+  "description": "Decolab panel",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07091a",
+  "theme_color": "#07091a",
+  "orientation": "any",
+  "icons": [
+    { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

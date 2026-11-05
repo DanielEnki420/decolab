@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# decolab-compose - docker compose for one Decolab stack, with its env files
+#
+#   decolab-compose STACK ARGS...    STACK: core immich vaultwarden watchtower uptime-kuma
+#
+# The same call install.sh and update.sh use (lib/compose.sh): a stack
+# started by hand without its env files gets empty variables (no password,
+# wrong user) and still starts. RESTORE.md uses it to start a single service,
+# for example: decolab-compose immich up -d database
+set -uo pipefail
+# shellcheck source-path=SCRIPTDIR/..
+# shellcheck source=lib/common.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/common.sh"
+usage() { sed -n '4s/^# \{0,1\}//p' "${BASH_SOURCE[0]}" >&2; exit 2; }
+[ $# -ge 2 ] || usage
+case $1 in core | immich | vaultwarden | watchtower | uptime-kuma) ;; *) usage ;; esac
+decolab_init
+# shellcheck source=lib/compose.sh
+. "$decolab_root/lib/compose.sh"
+decolab_compose "$@"

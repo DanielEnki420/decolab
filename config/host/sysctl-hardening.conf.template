@@ -1,0 +1,36 @@
+# Kernel hardening (HARDENING=yes), installed as /etc/sysctl.d/90-decolab.conf.
+#
+# install.sh renders this file with exactly these variables: ${LAN_INTERFACE}
+#
+# Deliberately NOT changed:
+#   net.ipv4.ip_forward, conf.*.forwarding  Docker and Tailscale need forwarding
+#   rp_filter, accept_ra                    risky together with forwarding and Tailscale
+#   kernel.modules_disabled                 would block loading any module until reboot
+#   kernel.unprivileged_bpf_disabled        Debian already sets 2; 1 cannot be undone
+#                                           without a reboot
+
+# Kernel messages and kernel addresses for root only, or not at all
+kernel.dmesg_restrict = 1
+kernel.kptr_restrict = 2
+# Harden the BPF JIT against spraying
+net.core.bpf_jit_harden = 2
+# No magic SysRq keys (no keyboard on a server; power-cycle instead)
+kernel.sysrq = 0
+# Do not auto-load TTY line disciplines (old attack surface)
+dev.tty.ldisc_autoload = 0
+# Do not open FIFOs owned by others in world-writable sticky directories (/tmp)
+fs.protected_fifos = 2
+# Root writes and chowns in directories the user owns (logs, state): no
+# following of planted links. Debian's default, made explicit.
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+# Log packets with impossible source addresses (the kernel rate-limits this).
+# If it gets noisy (journalctl -k | grep -c martian), remove these two lines.
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+# Send no ICMP redirects. The kernel combines "all" OR the interface: all=0
+# alone does not change an interface that already exists, hence all three.
+# Slashes in the last key: a VLAN name like eth0.10 keeps its dot (sysctl.d(5)).
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net/ipv4/conf/${LAN_INTERFACE}/send_redirects = 0

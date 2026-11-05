@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Fake systemctl for the tests: FAKE_SYSTEMCTL is a piece of bash that looks at "$@".
+eval "${FAKE_SYSTEMCTL:-exit 0}"

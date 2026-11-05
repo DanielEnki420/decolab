@@ -1,0 +1,7 @@
+# The keys that sign Decolab's release tags, installed as
+# /etc/decolab/release-signers. bin/decolab-checkout and scripts/update.sh
+# accept only tags signed by one of them (git's allowed signers format:
+# PRINCIPAL namespaces="git" KEY). The installed copy comes from a release
+# you already trusted, so a new key arrives inside a release signed by the
+# old one.
+262995312+DanielEnki420@users.noreply.github.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHcnEMk5LWXVBZs4n2Nui2Cc5iKzAtqvrqA/kFrov+5A

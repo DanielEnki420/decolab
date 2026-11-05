@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a08">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+<title>Decolab</title>
+<link rel="stylesheet" href="/static/panel.css">
+</head>
+<body>
+<main id="main" style="display:flex;align-items:center;justify-content:center;min-height:100vh">
+  <form class="card" method="post" action="/login" style="width:min(420px,92vw)">
+    <div class="logo" style="justify-content:center;margin-bottom:14px">
+      <div class="icon"><img src="/static/icons/eqv-logo.webp" alt="Esse quam videri" width="60" height="60"></div>
+      <div class="logo-name">Decolab</div>
+    </div>
+    <div class="card-title">Panel token</div>
+    <p style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:12px">
+      The token is in <code>SECRETS_DIR/panel-token</code> on the server
+      (<code>cat</code> it there). The browser keeps it as a cookie for 30 days.
+    </p>
+    <input id="token" name="token" type="password" autocomplete="current-password" required
+           minlength="32" maxlength="200" style="width:100%;margin-bottom:12px">
+    <div id="wrong" class="internet-fehler" hidden style="margin-bottom:10px">That token is not right.</div>
+    <button class="btn btn-primary" type="submit">Open the panel</button>
+  </form>
+</main>
+<script src="/static/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+# Every file install.sh puts on the host, one per line, columns separated by
+# TABs:
+#
+#   SOURCE  DESTINATION  MODE  OWNER  WHEN  AFTER
+#
+# SOURCE       below the repository. *.template is rendered (lib/render.py)
+#              with exactly the variables its header declares; others are copied.
+# DESTINATION  absolute; "SECRETS_DIR/..." is below SECRETS_DIR.
+# OWNER        user:group; "DECOLAB_USER" stands for the configured user.
+# WHEN         always, a setting (HW_FAN, HW_OLED, HW_NVME, HW_UPS: as detected;
+#              HARDENING: if yes) or late: placed after the stacks run, and
+#              only once the restore is confirmed or there is nothing to
+#              restore (the schedules: a nightly backup of a half restored
+#              system would push the good copies out).
+# AFTER        what has to happen once if the file changed: tmpfiles,
+#              systemd (daemon-reload), udev, sysctl, nut, sudoers (checked
+#              with visudo before and after) or - for nothing.
+#
+# install.sh records the checksum of every file it wrote in
+# /var/lib/decolab/installed.tsv. A file still as written is updated when the
+# repository changes it (the old one is kept as FILE.decolab-old); a file
+# someone changed is never overwritten: install.sh shows the difference.
+# tests/test-templates.sh checks that this list and the headers of the
+# files ("installed as ...") agree.
+#
+# The Rust tools of stage 2 read this file too: keep it a plain table.
+
+config/host/tmpfiles.conf.template	/etc/tmpfiles.d/decolab.conf	0644	root:root	always	tmpfiles
+config/host/logrotate.template	/etc/logrotate.d/decolab	0644	root:root	always	-
+config/host/apt-origins.conf	/etc/apt/apt.conf.d/51-decolab-origins	0644	root:root	always	-
+config/host/apt-reboot.conf	/etc/apt/apt.conf.d/52-decolab-reboot	0644	root:root	always	-
+config/host/needrestart.conf	/etc/needrestart/conf.d/90-decolab.conf	0644	root:root	always	-
+config/host/sysctl-hardening.conf.template	/etc/sysctl.d/90-decolab.conf	0644	root:root	HARDENING	sysctl
+config/host/modprobe-hardening.conf	/etc/modprobe.d/90-decolab.conf	0644	root:root	HARDENING	-
+config/firewall/decolab-firewall-boot	/usr/local/sbin/decolab-firewall-boot	0755	root:root	HARDENING	-
+config/systemd/decolab-firewall.service	/etc/systemd/system/decolab-firewall.service	0644	root:root	HARDENING	systemd
+config/host/sudoers-firewall.template	/etc/sudoers.d/decolab-firewall	0440	root:root	HARDENING	sudoers
+config/crowdsec/apt-preferences	/etc/apt/preferences.d/crowdsec	0644	root:root	HARDENING	-
+config/crowdsec/config.yaml.local	/etc/crowdsec/config.yaml.local	0644	root:root	HARDENING	-
+config/systemd/decolab-watchdog.service.template	/etc/systemd/system/decolab-watchdog.service	0644	root:root	always	systemd
+config/systemd/decolab-watchdog.timer	/etc/systemd/system/decolab-watchdog.timer	0644	root:root	always	systemd
+config/systemd/decolab-boot-notify.service.template	/etc/systemd/system/decolab-boot-notify.service	0644	root:root	always	systemd
+config/systemd/decolab-panel.service.template	/etc/systemd/system/decolab-panel.service	0644	root:root	always	systemd
+config/systemd/decolab-fan.service.template	/etc/systemd/system/decolab-fan.service	0644	root:root	HW_FAN	systemd
+config/udev/61-decolab-fan-pwm.rules	/etc/udev/rules.d/61-decolab-fan-pwm.rules	0644	root:root	HW_FAN	udev
+config/systemd/decolab-oled.service.template	/etc/systemd/system/decolab-oled.service	0644	root:root	HW_OLED	systemd
+config/nut/nut.conf	/etc/nut/nut.conf	0640	root:nut	HW_UPS	nut
+config/nut/ups.conf	/etc/nut/ups.conf	0640	root:nut	HW_UPS	nut
+config/nut/upsd.conf	/etc/nut/upsd.conf	0640	root:nut	HW_UPS	nut
+config/nut/upsd.users.template	/etc/nut/upsd.users	0640	root:nut	HW_UPS	nut
+config/nut/upsmon.conf.template	/etc/nut/upsmon.conf	0640	root:nut	HW_UPS	nut
+config/nut/upssched.conf	/etc/nut/upssched.conf	0640	root:nut	HW_UPS	nut
+config/nut/decolab-ups-event.template	/usr/local/sbin/decolab-ups-event	0755	root:root	HW_UPS	-
+config/host/sudoers-nvme.template	/etc/sudoers.d/decolab-nvme	0440	root:root	HW_NVME	sudoers
+config/nut/sudoers-nut.template	/etc/sudoers.d/decolab-nut	0440	root:root	HW_UPS	sudoers
+config/samba/samba.yml.template	SECRETS_DIR/samba.yml	0600	DECOLAB_USER:DECOLAB_USER	always	-
+config/cron/cron.d-decolab.template	/etc/cron.d/decolab	0644	root:root	late	-
+config/cron/cron.d-decolab-root.template	/etc/cron.d/decolab-root	0644	root:root	late	-
+config/host/release-signers	/etc/decolab/release-signers	0644	root:root	always	-

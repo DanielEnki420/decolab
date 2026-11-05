@@ -1,0 +1,28 @@
+# Schedule of root: jobs that need root (mounting and writing the USB disk,
+# reading every file for the off-site copy, arp-scan), installed as
+# /etc/cron.d/decolab-root (0644 root:root).
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_DIR}
+# Same rules as cron.d-decolab.template.
+#
+# These jobs run scripts that belong to DECOLAB_USER. That gives the user
+# nothing new: in the docker group the user is root already (docs/SECURITY.md).
+#
+# On a fresh host install.sh installs this file only after the restore is
+# confirmed (/var/lib/decolab/restore-confirmed) or when there is nothing to
+# restore. Before that these jobs are dangerous: backup-usb.sh mirrors with
+# rsync --delete (a half restored system would trim the copy you may be
+# restoring from), and backup-offsite.sh would add snapshots of an empty
+# system that push the good ones out.
+
+# --- Off-device and off-site -------------------------------------------------
+50 3 * * * root ${DECOLAB_DIR}/scripts/backup-usb.sh >> /var/log/decolab/backup-usb.log 2>&1
+10 4 * * * root ${DECOLAB_DIR}/scripts/backup-offsite.sh >> /var/log/decolab/backup-offsite.log 2>&1
+
+# --- Sundays: read the off-site copy back. restic locks exclusively, so the
+# jobs keep their distance.
+30 6 * * 0 root ${DECOLAB_DIR}/scripts/check-restic-integrity.sh >> /var/log/decolab/check-restic-integrity.log 2>&1
+0 7 * * 0 root ${DECOLAB_DIR}/scripts/restore-probe-vaultwarden-offsite.sh >> /var/log/decolab/restore-probe-vaultwarden-offsite.log 2>&1
+
+# --- Home network: report new devices ----------------------------------------
+*/15 * * * * root ${DECOLAB_DIR}/scripts/device-watch.sh >> /var/log/decolab/device-watch.log 2>&1

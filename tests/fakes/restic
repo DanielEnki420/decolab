@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Fake restic for the tests. The test sets FAKE_RESTIC to a piece of bash
+# that looks at "$@" and prints what restic would print; its exit code is
+# restic's. Every call is recorded in FAKE_RESTIC_LOG.
+printf '%s\n' "$*" >>"${FAKE_RESTIC_LOG:-/dev/null}"
+eval "${FAKE_RESTIC:-exit 0}"

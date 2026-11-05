@@ -1,0 +1,43 @@
+# Prometheus, the only data source of all dashboards.
+#
+# Perses does not query Prometheus from the browser but through its own
+# pass-through /proxy/globaldatasources/prometheus/... Without a list it
+# forwards ANY path, including /api/v1/status/config (the whole scrape
+# configuration) and /federate. So: only what dashboards and the query editor
+# need. The patterns are anchored (^...$) so that /api/v1/query does not also
+# allow /api/v1/query_exemplars.
+kind: GlobalDatasource
+metadata:
+  name: prometheus
+spec:
+  default: true
+  plugin:
+    kind: PrometheusDatasource
+    spec:
+      proxy:
+        kind: HTTPProxy
+        spec:
+          url: http://prometheus:9090
+          allowedEndpoints:
+            - endpointPattern: ^/api/v1/query$
+              method: POST
+            - endpointPattern: ^/api/v1/query$
+              method: GET
+            - endpointPattern: ^/api/v1/query_range$
+              method: POST
+            - endpointPattern: ^/api/v1/query_range$
+              method: GET
+            - endpointPattern: ^/api/v1/labels$
+              method: POST
+            - endpointPattern: ^/api/v1/labels$
+              method: GET
+            - endpointPattern: ^/api/v1/label/[a-zA-Z0-9_]+/values$
+              method: GET
+            - endpointPattern: ^/api/v1/series$
+              method: POST
+            - endpointPattern: ^/api/v1/series$
+              method: GET
+            - endpointPattern: ^/api/v1/metadata$
+              method: GET
+            - endpointPattern: ^/api/v1/parse_query$
+              method: POST

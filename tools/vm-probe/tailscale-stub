@@ -1,0 +1,11 @@
+#!/bin/sh
+# tailscale-stub - stands in for tailscale in tools/vm-probe: reports this
+# VM as connected to a tailnet named "tailprobe". Nothing joins a tailnet.
+# Installed as /usr/local/bin/tailscale by guest.sh prepare, never on a real host.
+host=$(hostname -s)
+case "$*" in
+  "status --json")
+    printf '{"BackendState":"Running","Self":{"DNSName":"%s.tailprobe.ts.net.","KeyExpiry":"2099-01-01T00:00:00Z","Online":true},"Peer":{}}\n' "$host" ;;
+  "debug netmap") printf '{"PacketFilter":[]}\n' ;;
+  *) echo "tailscale-stub: $*: not part of the probe" >&2; exit 1 ;;
+esac

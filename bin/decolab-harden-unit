@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# decolab-harden-unit UNIT CHECK-COMMAND [ARGS...] < DROP-IN
+#   harden ONE systemd service with a drop-in, measured, and taken back by
+#   itself if the service stops doing its work.
+#
+# Example (the drop-in on stdin, the check proves the work, not "active"):
+#   decolab-harden-unit decolab-fan test-fan-moves.sh < my-hardening.conf
+#
+# Why a tool: hardening services by hand means one more chance each time to
+# break one silently. There is no single recipe: the fan service needs the
+# PWM files, the OLED service I2C. The drop-in is a file of its own
+# (UNIT.service.d/decolab-hardening.conf): the unit itself stays untouched,
+# and the way back is deleting that file.
+#
+# What it does:
+#   1. keeps a copy of a drop-in that is already there (a failure restores
+#      it; the original tool deleted it, and with it the earlier hardening)
+#   2. installs the new one, restarts, waits 6 s: is the service active, does
+#      CHECK-COMMAND succeed?
+#   3. watches 30 s more: a service once passed the first check and crashed
+#      later (ProcSubset=pid hides /proc/stat, and psutil reads it only in
+#      the first display round). A check after 6 s does not see that.
+#   4. prints the score of "systemd-analyze security" before and after
+# Any failure: back to the state before, with the last journal lines.
+# Needs sudo. The check command runs as you, without a shell (no eval).
+set -uo pipefail
+[ $# -ge 2 ] || { sed -n '2,4s/^# \{0,1\}//p' "$0" >&2; exit 2; }
+unit=${1%.service}
+shift
+case $unit in *[!A-Za-z0-9_.@-]* | '') echo "invalid unit name: $unit" >&2; exit 2 ;; esac
+dir=${HARDEN_SYSTEMD_DIR:-/etc/systemd/system}/$unit.service.d
+dropin=$dir/decolab-hardening.conf
+settle=${HARDEN_SETTLE_S:-6} watch=${HARDEN_WATCH_S:-30}
+
+new=$(cat) || exit 1
+[ -n "$new" ] || { echo "no drop-in on stdin" >&2; exit 2; }
+backup=$(mktemp) || exit 1
+trap 'rm -f "$backup"' EXIT
+had_old=0
+if sudo test -e "$dropin"; then
+  # shellcheck disable=SC2024 # on purpose: root reads, the copy is ours
+  sudo cat "$dropin" >"$backup" || { echo "cannot read the existing $dropin" >&2; exit 1; }
+  had_old=1
+fi
+
+score() { sudo systemd-analyze security "$unit.service" 2>/dev/null | tail -1 | grep -oE '[0-9]+\.[0-9]+' | head -1; }
+works() { [ "$(systemctl is-active "$unit" 2>/dev/null)" = active ] && "$@" >/dev/null 2>&1; }
+back() { # WHY CHECK-COMMAND...
+  echo "  ✗ $1: taking the hardening back"
+  shift
+  sudo journalctl -u "$unit" -n 6 --no-pager 2>/dev/null | sed 's/^/      /'
+  if [ "$had_old" = 1 ]; then
+    # shellcheck disable=SC2024 # on purpose: we read our copy, root writes
+    sudo tee "$dropin" <"$backup" >/dev/null
+  else
+    sudo rm -f "$dropin"
+  fi
+  sudo systemctl daemon-reload
+  sudo systemctl restart "$unit"
+  sleep "$settle"
+  echo "  taken back ($([ "$had_old" = 1 ] && echo "earlier drop-in restored" || echo "no drop-in")), service: $(systemctl is-active "$unit" 2>/dev/null), check: $(works "$@" && echo ok || echo "STILL FAILING")"
+  exit 1
+}
+
+before=$(score)
+echo "── $unit ──"
+echo "  before: ${before:-?}  (service: $(systemctl is-active "$unit" 2>/dev/null))"
+sudo mkdir -p "$dir" || exit 1
+printf '%s\n' "$new" | sudo tee "$dropin" >/dev/null || exit 1
+sudo systemctl daemon-reload
+sudo systemctl restart "$unit" || back "the restart failed" "$@"
+sleep "$settle"
+works "$@" || back "the service is not active or fails its check" "$@"
+echo "  ... running, watching $watch s more for a delayed crash"
+restarts=$(systemctl show -p NRestarts --value "$unit" 2>/dev/null)
+sleep "$watch"
+[ "$(systemctl show -p NRestarts --value "$unit" 2>/dev/null)" = "$restarts" ] ||
+  back "the service restarted in the meantime" "$@"
+works "$@" || back "DELAYED failure" "$@"
+echo "  ✓ running and working after $((settle + watch)) s - after: $(score)  (before ${before:-?}; lower is better)"

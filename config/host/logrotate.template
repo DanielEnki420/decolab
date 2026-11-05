@@ -1,0 +1,14 @@
+# Decolab's own logs, installed as /etc/logrotate.d/decolab.
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER}
+#
+# copytruncate: cron jobs append with >>, they never reopen the file.
+/var/log/decolab/*.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+    copytruncate
+    su ${DECOLAB_USER} ${DECOLAB_USER}
+}

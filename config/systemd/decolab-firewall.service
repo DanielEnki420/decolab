@@ -1,0 +1,22 @@
+# Firewall (HARDENING=yes), installed as /etc/systemd/system/decolab-firewall.service.
+# Enabled by "decolab-firewall confirm" only, never by install.sh: until a
+# new SSH login proved that the rules let you in, nothing is permanent.
+#
+# Before Docker and the network: there is no moment at boot in which the
+# containers are reachable without it. The rules are one nftables table of
+# their own (inet decolab); Docker's, Tailscale's and CrowdSec's tables stay
+# untouched.
+[Unit]
+Description=Decolab firewall (nftables table inet decolab)
+DefaultDependencies=no
+Before=network-pre.target docker.service ssh.service
+Wants=network-pre.target
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/decolab-firewall-boot boot
+
+[Install]
+WantedBy=multi-user.target

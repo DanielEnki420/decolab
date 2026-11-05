@@ -1,0 +1,13 @@
+# Installed as /etc/systemd/system/decolab-watchdog.timer: 90 s after boot
+# (containers stuck in "Created" after a start-order race), then every
+# 10 minutes.
+[Unit]
+Description=Decolab watchdog: 90 s after boot, then every 10 minutes
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=10min
+AccuracySec=20s
+
+[Install]
+WantedBy=timers.target

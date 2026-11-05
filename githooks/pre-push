@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# pre-push: the last gate before GitHub. The commit hooks can be skipped
+# (--no-verify, other clients, a clone without tools/setup-dev.sh); this
+# scans everything that would become public: every commit and its files,
+# messages, authors, tags and ref names, plus gitleaks over the history.
+set -euo pipefail
+root=$(git rev-parse --show-toplevel)
+gitleaks=${DECOLAB_GITLEAKS:-gitleaks}
+words=${DECOLAB_GUARD_WORDS:-$HOME/.config/decolab/guard-words.txt}
+
+if ! grep -qv -e '^[[:space:]]*$' -e '^[[:space:]]*#' "$words" 2>/dev/null; then
+  echo "pre-push: no private word list ($words): without it personal names are not checked. Refusing to push." >&2
+  exit 1
+fi
+"$root/tools/guard.sh" --history
+if ! command -v "$gitleaks" >/dev/null 2>&1; then
+  echo "pre-push: gitleaks is not installed; refusing to push without the secret scan." >&2
+  exit 1
+fi
+"$gitleaks" git --redact --no-banner --log-level warn "$root"

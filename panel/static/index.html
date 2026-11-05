@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a08">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Decolab">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/static/favicon-64.png">
+<link rel="apple-touch-icon" href="/static/icon-180.png">
+<title>Decolab</title>
+<link rel="stylesheet" href="/static/panel.css">
+</head>
+<body>
+
+<!-- Decolab panel, stage 1: read-only. Every value is filled in by
+     /static/panel.js from /api/v1/*; "—" means "not (yet) known". -->
+
+<header id="hdr">
+  <button id="menu-btn" type="button" aria-label="Menu">☰</button>
+  <div class="logo">
+    <div class="icon"><img src="/static/icons/eqv-logo.webp" alt="Esse quam videri" width="60" height="60"></div>
+    <div class="logo-name" id="hdr-name">Decolab</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="hdr-pill" id="hdr-ip" style="gap:5px"><span id="hdr-ip-txt">—</span></div>
+  <div class="hdr-pill"><div class="dot dot-green" id="hdr-dot"></div><span id="hdr-temp">—</span></div>
+  <div class="hdr-pill" id="hdr-fan-pill" style="display:none"><span id="hdr-fan">— RPM</span></div>
+  <div id="hdr-time"></div>
+  <button id="fs-btn" class="hdr-pill fs-btn" type="button" title="Full screen" aria-label="Full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+</header>
+
+<div id="layout">
+
+<nav id="nav">
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" data-page="p-dashboard" role="button" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </div>
+  <div class="nav-section">Host</div>
+  <div class="nav-item" data-page="p-docker" role="button" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+    Containers
+  </div>
+  <div class="nav-item" data-page="p-system" role="button" tabindex="0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    System
+  </div>
+
+  <div class="nav-bottom">
+    <div class="nav-info">
+      <div id="nav-up" style="color:var(--text)">—</div>
+      <div id="nav-ip" style="margin-top:2px">—</div>
+      <div id="nav-model" style="margin-top:4px;color:var(--text-3)">—</div>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- ──────────── DASHBOARD ──────────── -->
+<section class="page active" id="p-dashboard">
+  <div class="page-title">Dashboard <small id="dash-time-sub"></small></div>
+
+  <div class="card wide" style="margin-bottom:16px">
+    <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#apps"/></svg> Apps</div>
+    <div class="launcher" id="launcher"></div>
+  </div>
+
+  <div class="grid g6" style="margin-bottom:16px">
+    <div class="stat c-blue" style="--glow:rgba(45,127,249,.08)">
+      <div class="lbl">CPU</div>
+      <div class="val" id="s-cpu">—</div>
+      <div class="sub" id="s-cpu-sub">—</div>
+      <div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#cpu"/></svg></div>
+      <div class="bar-wrap"><div class="bar-fill" id="sb-cpu" style="background:var(--accent);width:0%"></div></div>
+    </div>
+    <div class="stat c-green" style="--glow:rgba(0,214,143,.08)">
+      <div class="lbl">RAM</div>
+      <div class="val" id="s-ram">—</div>
+      <div class="sub" id="s-ram-sub">— GB</div>
+      <div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#ram"/></svg></div>
+      <div class="bar-wrap"><div class="bar-fill" id="sb-ram" style="background:var(--green);width:0%"></div></div>
+    </div>
+    <div class="stat c-amber">
+      <div class="lbl">Disk</div>
+      <div class="val" id="s-disk">—</div>
+      <div class="sub" id="s-disk-sub">— GB</div>
+      <div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#ssd"/></svg></div>
+      <div class="bar-wrap"><div class="bar-fill" id="sb-disk" style="background:var(--amber);width:0%"></div></div>
+    </div>
+    <div class="stat c-red">
+      <div class="lbl">CPU temp</div>
+      <div class="val" id="s-ctemp">—</div>
+      <div class="sub" id="s-ctemp-sub">—</div>
+      <div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#thermo"/></svg></div>
+      <div class="bar-wrap"><div class="bar-fill" id="sb-ctemp" style="background:var(--red);width:0%"></div></div>
+    </div>
+    <div class="stat c-blue">
+      <div class="lbl">NVMe temp</div>
+      <div class="val" id="s-ntemp">—</div>
+      <div class="sub" id="s-ntemp-sub">—</div>
+      <div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#nvme"/></svg></div>
+      <div class="bar-wrap"><div class="bar-fill" id="sb-ntemp" style="background:var(--accent);width:0%"></div></div>
+    </div>
+    <div class="stat c-purple">
+      <div class="lbl">Uptime</div>
+      <div class="val" id="s-uptime" style="font-size:22.4px;margin-top:2px">—</div>
+      <div class="sub">since the last boot</div>
+      <div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#clock"/></svg></div>
+    </div>
+  </div>
+
+  <div class="grid gcols" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">History — CPU &amp; RAM <span id="chart-since">last 5 minutes</span></div>
+      <div class="spark-wrap"><canvas id="chart-cpu-ram"></canvas></div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:12.3px;color:var(--text-2)">
+        <span><span style="color:var(--accent)">●</span> CPU</span>
+        <span><span style="color:var(--green)">●</span> RAM</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">History — temperatures</div>
+      <div class="spark-wrap"><canvas id="chart-temps"></canvas></div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:12.3px;color:var(--text-2)">
+        <span><span style="color:var(--red)">●</span> CPU °C</span>
+        <span><span style="color:var(--amber)">●</span> NVMe °C</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g3 dash-mitte">
+    <div class="card">
+      <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#shieldcheck"/></svg> Monitoring</div>
+      <div class="waechter">
+        <div class="waechter-zahl"><span id="alerts-n">—</span><small id="alerts-sub"></small></div>
+        <div class="waechter-txt" id="alerts-txt">Prometheus alerts</div>
+      </div>
+      <div class="waechter-zeile" id="cgrid-summary">Containers …</div>
+      <div class="waechter-zeile" id="backup-line">Backup …</div>
+      <ul id="alerts-list" class="leer-hinweis" style="list-style:none;margin-top:8px"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#net"/></svg> Network <span id="net-iface">—</span></div>
+      <div class="netz">
+        <div class="netz-wert"><span class="netz-pfeil ab"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#down"/></svg></span><b id="nl-r">—</b><small id="nl-r-e"></small></div>
+        <div class="netz-wert"><span class="netz-pfeil auf"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#up"/></svg></span><b id="nl-s">—</b><small id="nl-s-e"></small></div>
+      </div>
+      <div class="spark-wrap netz-spark"><canvas id="chart-netz"></canvas></div>
+      <div class="netz-summe" id="nl-summe">since boot —</div>
+      <div class="netz-internet" id="nl-internet" hidden></div>
+    </div>
+
+    <div class="card" id="fan-card">
+      <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#fan"/></svg> Fan <span id="fan-status-badge"></span></div>
+      <div class="fan-visual fan-kompakt">
+        <div class="fan-ring" id="fan-ring">
+          <div>
+            <div class="fan-rpm-big" id="fan-rpm-big">—</div>
+            <div class="fan-rpm-lbl">RPM</div>
+          </div>
+        </div>
+        <div class="gauge fan-pwm">
+          <span class="g-name">PWM</span>
+          <div class="g-bar"><div class="bar-wrap"><div class="bar-fill" id="g-fan" style="background:var(--accent);width:0%"></div></div></div>
+          <span class="g-val" id="gv-fan">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card wide" style="margin-top:16px">
+    <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#box"/></svg> Containers <span id="cgrid-zahl"></span></div>
+    <div id="cgrid" class="cgrid"></div>
+  </div>
+</section>
+
+<!-- ──────────── CONTAINERS ──────────── -->
+<section class="page" id="p-docker">
+  <div class="page-title">Containers <small id="docker-count"></small></div>
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="stat c-green"><div class="lbl">Running</div><div class="val" id="dk-up">—</div><div class="sub">of <span id="dk-ges">—</span> containers</div><div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#box"/></svg></div></div>
+    <div class="stat c-amber"><div class="lbl">Extra</div><div class="val" id="dk-extra">—</div><div class="sub">not from Decolab</div><div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#pulse"/></svg></div></div>
+    <div class="stat c-red"><div class="lbl">Stopped</div><div class="val" id="dk-down">—</div><div class="sub" id="dk-down-sub">—</div><div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#warn"/></svg></div></div>
+    <div class="stat c-blue"><div class="lbl">Source</div><div class="val" id="dk-src" style="font-size:22.4px">—</div><div class="sub">Prometheus · cAdvisor</div><div class="ico"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#chart"/></svg></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#box"/></svg> All containers <input id="dk-suche" class="suche" type="search" placeholder="Search …" autocomplete="off"></div>
+    <table class="tbl">
+      <thead><tr><th>Name</th><th>Image</th><th>Up since</th><th>Status</th></tr></thead>
+      <tbody id="docker-tbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ──────────── SYSTEM ──────────── -->
+<section class="page" id="p-system">
+  <div class="page-title">System</div>
+
+  <h2 class="abschnitt"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#screen"/></svg>Overview</h2>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#cpu"/></svg> Hardware</div>
+    <div class="grid g3" id="hw-grid"></div>
+  </div>
+
+  <div class="grid gcols" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#cpu"/></svg> CPU cores</div>
+      <div class="cores" id="cores-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#ram"/></svg> Memory</div>
+      <div class="gauge"><span class="g-name">RAM used</span><div class="g-bar"><div class="bar-wrap"><div class="bar-fill" id="sg-ram" style="background:var(--green);width:0%"></div></div></div><span class="g-val c-green" id="sgv-ram">—</span></div>
+      <div style="font-size:12.3px;color:var(--text-2);margin-top:6px" id="ram-detail">—</div>
+      <div style="margin-top:16px">
+        <div class="card-title">Swap</div>
+        <div style="font-size:13.4px;color:var(--text-2)" id="swap-detail">—</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="abschnitt"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#ssd"/></svg>Storage</h2>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#ssd"/></svg> Disks</div>
+    <div id="disks"></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#backup"/></svg> Backup <span>nightly, checked by Decolab's probes</span></div>
+    <div class="info-tbl" id="backup-tbl"></div>
+  </div>
+
+  <div id="speed-block" hidden>
+    <h2 class="abschnitt"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#globe"/></svg>Internet</h2>
+    <div class="card">
+      <div class="card-title"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#globe"/></svg> Speed <span id="it-meta">—</span></div>
+      <div class="internet-reihe">
+        <div class="internet-werte">
+          <div class="netz-wert"><span class="netz-pfeil ab"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#down"/></svg></span><b id="it-down">—</b><small>Mbit/s</small></div>
+          <div class="netz-wert"><span class="netz-pfeil auf"><svg class="i" aria-hidden="true"><use href="/static/icons/ui.svg#up"/></svg></span><b id="it-up">—</b><small>Mbit/s</small></div>
+          <div class="internet-ping">Ping <b id="it-ping">—</b> ms · Jitter <b id="it-jitter">—</b> ms</div>
+        </div>
+        <div class="internet-kurven leer" id="it-kurven">
+          <div><small>Download</small><div class="spark-wrap"><canvas id="chart-it-down"></canvas></div></div>
+          <div><small>Upload</small><div class="spark-wrap"><canvas id="chart-it-up"></canvas></div></div>
+        </div>
+      </div>
+      <div class="internet-fuss"><span class="internet-fehler" id="it-fehler" hidden></span><span class="internet-hinweis">measured every 6 hours</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<div id="overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;backdrop-filter:blur(2px)"></div>
+<div id="toast"></div>
+
+<script src="/static/panel.js"></script>
+</body>
+</html>

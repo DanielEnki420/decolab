@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# decolab-notify - send a notification the configured way (NOTIFY)
+#
+#   decolab-notify TITLE [TEXT]
+#
+# For scripts that are not written in bash (Python). Exit code 1 if the
+# notification could not be delivered; the reason is in the output and in
+# /var/log/decolab/notify-errors.log.
+set -uo pipefail
+# shellcheck source-path=SCRIPTDIR/..
+# shellcheck source=lib/common.sh
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/common.sh"
+[ $# -ge 1 ] && [ $# -le 2 ] || {
+  sed -n '4s/^# \{0,1\}//p' "${BASH_SOURCE[0]}" >&2
+  exit 2
+}
+decolab_init
+notify "$1" "${2:-}"

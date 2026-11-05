@@ -1,0 +1,29 @@
+# A message after every start, installed as
+# /etc/systemd/system/decolab-boot-notify.service. A restart nobody asked
+# for (power, kernel panic, watchdog) is otherwise only noticed by chance.
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER} ${DECOLAB_DIR}
+#
+# After a power cut the host often starts BEFORE the router or modem: the
+# first try fails. A single failure left the unit "failed", which raised the
+# failed-service alarm 10 minutes later. So: every 30 s again, at most 30
+# times (about 15 minutes), only then "failed".
+[Unit]
+Description=Decolab: message after a restart
+After=network-online.target docker.service
+Wants=network-online.target
+StartLimitIntervalSec=1200
+StartLimitBurst=30
+
+[Service]
+Type=oneshot
+User=${DECOLAB_USER}
+ExecStart=${DECOLAB_DIR}/bin/decolab-notify "🔄 Restarted" "The system is online again after a restart."
+# The firewall loads before the network, so it cannot report itself; with
+# it failed, Docker's ports are open to everyone (HARDENING=yes only).
+ExecStart=/bin/sh -c 'systemctl is-failed -q decolab-firewall.service || exit 0; exec ${DECOLAB_DIR}/bin/decolab-notify "🔥 Firewall" "decolab-firewall did not load at boot: container ports may be open to everyone. journalctl -u decolab-firewall"'
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

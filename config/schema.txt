@@ -1,0 +1,60 @@
+# Decolab configuration schema
+#
+# One setting per line: KEY TYPE REQUIRED
+#   REQUIRED is "required" or "optional" (optional settings may be empty).
+#
+# Types:
+#   user     Linux user name, not root
+#   abspath  absolute path without spaces, "..", "//" or trailing slash
+#   tz       time zone such as Europe/Berlin or UTC
+#   iface    network interface name
+#   ipv4     IPv4 address
+#   cidr     IPv4 network in CIDR form, aligned to its prefix
+#   port     TCP port 1-65535
+#   yesno    yes | no
+#   auto     auto | yes | no
+#   days     whole number 1-365
+#   tailnet  Tailscale tailnet name (the part before .ts.net)
+#   notify   telegram | none
+#   restic   restic repository (absolute path or sftp:, rest:, s3:, b2:, azure:, gs:, swift:, rclone:)
+#
+# The file is read by bin/decolab-config (stage 1) and the Rust tools
+# (stage 2+). Keep it a plain list: no quoting, no inline comments.
+
+DECOLAB_USER         user     required
+DECOLAB_DIR          abspath  required
+DATA_DIR             abspath  required
+SECRETS_DIR          abspath  required
+TZ                   tz       required
+
+LAN_INTERFACE        iface    required
+LAN_SUBNET           cidr     required
+HOST_LAN_IP          ipv4     required
+SSH_PORT             port     required
+DOCKER_ADDRESS_POOL  cidr     required
+WEB_UI_ADDRESS       ipv4     required
+PANEL_PORT           port     required
+
+TAILSCALE            yesno    required
+TAILNET_NAME         tailnet  optional
+
+MODULE_IMMICH        yesno    required
+MODULE_VAULTWARDEN   yesno    required
+MODULE_UPTIME_KUMA   yesno    required
+
+HW_FAN               auto     required
+HW_OLED              auto     required
+HW_NVME              auto     required
+HW_UPS               auto     required
+
+SPEEDTEST            yesno    required
+
+HARDENING            yesno    required
+SSH_PASSWORDS        yesno    required
+
+BACKUP_DIR           abspath  required
+BACKUP_KEEP_DAYS     days     required
+USB_BACKUP_DIR       abspath  optional
+RESTIC_REPOSITORY    restic   optional
+
+NOTIFY               notify   required

@@ -1,0 +1,10 @@
+# Installed as /etc/udev/rules.d/61-decolab-fan-pwm.rules (HW_FAN): group
+# gpio may write the fan's PWM, so decolab-fan runs without root.
+#
+# Matched by the device NAME, never by a fixed hwmonN number: after a kernel
+# was removed, the number moved from hwmon3 to hwmon2, the rule silently
+# stopped matching, the fan control got PermissionError and the fan froze
+# at its last value. ATTR{name} is stable across reboots, the number is not.
+SUBSYSTEM=="hwmon", ATTR{name}=="pwmfan", ACTION=="add|change", \
+  RUN+="/bin/chgrp gpio /sys%p/pwm1", \
+  RUN+="/bin/chmod g+w /sys%p/pwm1"

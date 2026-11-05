@@ -1,0 +1,66 @@
+# Schedule of the Decolab user (DECOLAB_USER), installed as
+# /etc/cron.d/decolab (0644 root:root).
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER} ${DECOLAB_DIR}
+# A file in /etc/cron.d, not "crontab FILE": that would replace the user's
+# whole crontab. The user's own crontab stays theirs and untouched.
+#
+# Format of /etc/cron.d: five time fields, the user, the command. The
+# file name has no dot (cron skips such files).
+#
+# No variable lines (MAILTO=, PATH=): their effect depends on their order. No
+# secrets. Scripts whose module or hardware is switched off exit quietly, so
+# this schedule is the same on every installation.
+#
+# Rule for Uptime Kuma push monitors (dead-man's switches): a monitor's
+# interval must always be LONGER than the job's interval here, plus the time
+# the job may take. Otherwise it turns red between two runs.
+
+# --- Night: backup and verification -----------------------------------------
+# backup.sh stops no container: it copies the databases while the services
+# run (Immich's dump included). The root jobs at 03:50 and 04:10 are in
+# cron.d-decolab-root.template; all of them share one lock, so they never overlap.
+0 3 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/backup.sh >> /var/log/decolab/backup.log 2>&1
+30 3 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/verify-backup.sh >> /var/log/decolab/verify-backup.log 2>&1
+45 3 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/image-digests.sh >> /var/log/decolab/image-digests.log 2>&1
+
+# --- Restore probes: after the automatic reboot at 05:17 ---------------------
+# Each probe restores the last backup into a throw-away container and checks
+# that the data is really there.
+50 5 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/restore-probe-vaultwarden.sh >> /var/log/decolab/restore-probe-vaultwarden.log 2>&1
+55 5 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/restore-probe-immich.sh >> /var/log/decolab/restore-probe-immich.log 2>&1
+0 6 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/restore-probe-kuma.sh >> /var/log/decolab/restore-probe-kuma.log 2>&1
+5 6 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/restore-probe-pihole.sh >> /var/log/decolab/restore-probe-pihole.log 2>&1
+
+# --- Morning report: after the last probe ------------------------------------
+# Sent EVERY day, also when everything went well: if it does not arrive, the
+# way to your phone is broken.
+15 6 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/morning-report.sh >> /var/log/decolab/morning-report.log 2>&1
+
+# --- Maintenance -------------------------------------------------------------
+# No automatic update: images change only with a Decolab release, applied
+# by hand with scripts/update.sh (it says what it will do with --dry-run).
+# Daily without notification (keeps the Kuma monitor fresh), Mondays with one.
+25 8 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/update-report.sh --quiet >> /var/log/decolab/update-report.log 2>&1
+20 9 * * 1 ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/update-report.sh >> /var/log/decolab/update-report.log 2>&1
+# Single-file bind mounts follow the inode; git pull replaces files.
+40 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/prometheus-rules-sync.sh >> /var/log/decolab/prometheus-rules-sync.log 2>&1
+
+# --- Correctness checks -> Uptime Kuma (push monitors) -----------------------
+*/2 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-perses.sh >> /var/log/decolab/check-perses.log 2>&1
+*/10 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-samba-login.sh >> /var/log/decolab/check-samba-login.log 2>&1
+*/15 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/monitor.sh >> /var/log/decolab/monitor.log 2>&1
+*/15 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-services.sh >> /var/log/decolab/check-services.log 2>&1
+*/15 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-cadvisor-coverage.sh >> /var/log/decolab/check-cadvisor-coverage.log 2>&1
+*/15 * * * * ${DECOLAB_USER} /usr/bin/flock -n /run/decolab/check-pihole.lock ${DECOLAB_DIR}/scripts/check-pihole-blocking.sh >> /var/log/decolab/check-pihole-blocking.log 2>&1
+*/15 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-unbound-dnssec.sh >> /var/log/decolab/check-unbound-dnssec.log 2>&1
+*/15 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-portainer-docker.sh >> /var/log/decolab/check-portainer-docker.log 2>&1
+*/15 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-prometheus-alerts.sh >> /var/log/decolab/check-prometheus-alerts.log 2>&1
+*/30 * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-immich-data.sh >> /var/log/decolab/check-immich-data.log 2>&1
+17 */6 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-nvme-health.sh >> /var/log/decolab/check-nvme-health.log 2>&1
+15 8 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/check-tailscale-keys.sh >> /var/log/decolab/check-tailscale-keys.log 2>&1
+
+# --- Measurements -> Prometheus ----------------------------------------------
+* * * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/ups-metrics.sh >> /var/log/decolab/ups-metrics.log 2>&1
+# Every 6 hours, away from backups, restore probes and morning updates.
+37 1,7,13,19 * * * ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/speedtest.sh >> /var/log/decolab/speedtest.log 2>&1

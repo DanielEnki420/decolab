@@ -1,0 +1,17 @@
+# Local configuration and secrets: never commit
+/decolab.conf
+/secrets/
+*.env
+*.key
+*.pem
+*.secret
+
+# Local overlay for personal additions (see docs, stage 2)
+/local/
+compose.override.yml
+
+# OS, editor, tooling
+.DS_Store
+._*
+__pycache__/
+*.pyc

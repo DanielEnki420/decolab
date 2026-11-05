@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Fake tailscale for the tests: prints FAKE_TAILSCALE_JSON for "status --json",
+# "debug netmap" prints FAKE_TAILSCALE_NETMAP.
+[ "$*" = "status --json" ] && printf '%s' "${FAKE_TAILSCALE_JSON:-}"
+[ "$*" = "debug netmap" ] && printf '%s' "${FAKE_TAILSCALE_NETMAP:-}"
+exit 0

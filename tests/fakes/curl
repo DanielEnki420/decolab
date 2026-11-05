@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Fake curl for the tests. Records arguments and stdin in FAKE_CURL_LOG.
+# The answer comes from FAKE_CURL (a piece of bash that may look at "$@" and
+# at $stdin, the config curl got with -K -), else from FAKE_CURL_REPLY and
+# FAKE_CURL_RC. Nothing leaves the machine.
+stdin=""
+# Read stdin only when told to (-K -), like curl: a fake that waits for input
+# nobody sends would hang the test instead of failing it.
+case " $* " in *" -K - "*) stdin=$(cat) ;; esac
+{
+  printf 'ARGS:'
+  printf ' %s' "$@"
+  printf '\nSTDIN:%s\n--\n' "$stdin"
+} >>"${FAKE_CURL_LOG:?}"
+if [ -n "${FAKE_CURL:-}" ]; then
+  eval "$FAKE_CURL"
+  exit
+fi
+printf '%s' "${FAKE_CURL_REPLY:-}"
+exit "${FAKE_CURL_RC:-0}"

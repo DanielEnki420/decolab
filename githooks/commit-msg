@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# commit-msg: commit messages become public too; check them like files.
+set -euo pipefail
+root=$(git rev-parse --show-toplevel)
+"$root/tools/guard.sh" --text "$1"

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Fake timeout for the tests (macOS has none): drops the duration, runs the rest.
+shift
+exec "$@"

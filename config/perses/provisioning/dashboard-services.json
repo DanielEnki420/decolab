@@ -1,0 +1,461 @@
+{
+ "kind": "Dashboard",
+ "metadata": {
+  "name": "services",
+  "project": "decolab"
+ },
+ "spec": {
+  "display": {
+   "name": "Decolab — Services"
+  },
+  "duration": "6h",
+  "variables": [],
+  "panels": {
+   "header": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": ""
+     },
+     "plugin": {
+      "kind": "Markdown",
+      "spec": {
+       "text": "## Decolab — Services\nIs everything that should be measured being measured? Alerts live in Prometheus and reach you through Uptime Kuma."
+      }
+     }
+    }
+   },
+   "statTargetsUp": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Scrape targets up"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "count(up == 1)"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statTargetsDown": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Scrape targets down"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "count(up == 0) or vector(0)"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statAlerts": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Firing alerts"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "count(ALERTS{alertstate=\"firing\"}) or vector(0)"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statTextfileErrors": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Textfile errors"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "sum(node_textfile_scrape_error)"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statOldestTextfile": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Oldest metric file (h)"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 1
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "max(time() - node_textfile_mtime_seconds) / 3600"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statUnitsFailed": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "systemd units failed"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "decolab_systemd_units_failed"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statUnitsLooping": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "systemd units in restart loop"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "decimal",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "decolab_systemd_units_restart_loop"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "statCadvisorCoverage": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "cAdvisor sees / running containers"
+     },
+     "plugin": {
+      "kind": "StatChart",
+      "spec": {
+       "calculation": "last",
+       "format": {
+        "unit": "percent",
+        "decimalPlaces": 0
+       }
+      }
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "count(count by (name) (container_last_seen{name!=\"\"})) / scalar(decolab_docker_containers_running) * 100"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "tableAlerts": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Firing alerts"
+     },
+     "plugin": {
+      "kind": "Table",
+      "spec": {}
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "ALERTS{alertstate=\"firing\"}",
+          "seriesNameFormat": "{{alertname}} {{job}}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   },
+   "tableTextfiles": {
+    "kind": "Panel",
+    "spec": {
+     "display": {
+      "name": "Metric files: age (s)"
+     },
+     "plugin": {
+      "kind": "Table",
+      "spec": {}
+     },
+     "queries": [
+      {
+       "kind": "TimeSeriesQuery",
+       "spec": {
+        "plugin": {
+         "kind": "PrometheusTimeSeriesQuery",
+         "spec": {
+          "query": "time() - node_textfile_mtime_seconds",
+          "seriesNameFormat": "{{file}}"
+         }
+        }
+       }
+      }
+     ]
+    }
+   }
+  },
+  "layouts": [
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": ""
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 24,
+       "height": 2,
+       "content": {
+        "$ref": "#/spec/panels/header"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": "Key figures"
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statTargetsUp"
+       }
+      },
+      {
+       "x": 4,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statTargetsDown"
+       }
+      },
+      {
+       "x": 8,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statAlerts"
+       }
+      },
+      {
+       "x": 12,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statTextfileErrors"
+       }
+      },
+      {
+       "x": 16,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statOldestTextfile"
+       }
+      },
+      {
+       "x": 20,
+       "y": 0,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statUnitsFailed"
+       }
+      },
+      {
+       "x": 0,
+       "y": 3,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statUnitsLooping"
+       }
+      },
+      {
+       "x": 4,
+       "y": 3,
+       "width": 4,
+       "height": 3,
+       "content": {
+        "$ref": "#/spec/panels/statCadvisorCoverage"
+       }
+      }
+     ]
+    }
+   },
+   {
+    "kind": "Grid",
+    "spec": {
+     "display": {
+      "title": "Details"
+     },
+     "items": [
+      {
+       "x": 0,
+       "y": 0,
+       "width": 12,
+       "height": 8,
+       "content": {
+        "$ref": "#/spec/panels/tableAlerts"
+       }
+      },
+      {
+       "x": 12,
+       "y": 0,
+       "width": 12,
+       "height": 8,
+       "content": {
+        "$ref": "#/spec/panels/tableTextfiles"
+       }
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

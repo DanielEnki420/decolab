@@ -1,0 +1,172 @@
+# Alert rules.
+#
+# There is deliberately no Alertmanager: one more service that can fail
+# silently would be the wrong tool. Instead scripts/check-prometheus-alerts.sh
+# reads Prometheus' alert API every 15 minutes and pushes the result to
+# Uptime Kuma, which notifies you. If that push stops, the Kuma monitor turns
+# red by itself: the same dead-man's-switch principle as everything else.
+#
+# Metric names and the files they come from: docs/metrics.md.
+
+groups:
+  - name: availability
+    interval: 60s
+    rules:
+      - alert: TargetDown
+        # A scrape target that is down raises no other alarm: nothing reads
+        # its metrics any more, and dashboards just show a gap.
+        expr: up == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus cannot reach {{ $labels.job }}"
+          description: "Target {{ $labels.instance }} (job {{ $labels.job }}) has not answered for 10 minutes."
+
+      - alert: TextfileCollectorError
+        # node_exporter could not parse a .prom file, for example a half
+        # written one. node_exporter itself keeps answering happily.
+        expr: node_textfile_scrape_error != 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "node_exporter cannot read a textfile metric"
+
+      - alert: TextfileMetricStale
+        # A writer that stopped leaves its last file behind, and Prometheus
+        # keeps reading it: flat, believable lines for days, while
+        # TextfileCollectorError stays silent because the file is still
+        # readable. This rule watches every file in the textfile directory by
+        # its modification time, with a limit that fits its writer:
+        #   fan.prom       fan control, every 5 s          -> 10 min
+        #   services.prom  check-services.sh, every 15 min -> 1 h
+        #   all others     at least daily                  -> 26 h
+        # A new file is covered without any further change.
+        expr: |
+          (time() - node_textfile_mtime_seconds{file=~".*/fan\\.prom"} > 600)
+          or (time() - node_textfile_mtime_seconds{file=~".*/services\\.prom"} > 3600)
+          or (time() - node_textfile_mtime_seconds{file!~".*/(fan|services)\\.prom"} > 93600)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Metric file {{ $labels.file }} is no longer written"
+          description: "Unchanged for {{ $value | humanizeDuration }}. Dashboards show the old values as a flat line until it is fixed. Check its writer (fan.prom: journalctl -u decolab-fan)."
+
+  - name: capacity
+    interval: 60s
+    rules:
+      - alert: DiskAlmostFull
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} < 0.10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 10 % free on {{ $labels.mountpoint }}"
+
+      - alert: MemoryLow
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 10 % of memory available"
+
+  - name: containers
+    interval: 60s
+    rules:
+      - alert: CadvisorSeesTooFew
+        # The treacherous case: cAdvisor runs, up == 1, healthcheck green, and
+        # still reports almost no containers (it missed its Docker API proxy
+        # once after a reboot). Compared with the number of running containers
+        # that scripts/check-cadvisor-coverage.sh counts. Usual fix:
+        # docker restart cadvisor
+        expr: count(count by (name) (container_last_seen{name!=""})) < 0.8 * scalar(decolab_docker_containers_running)
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "cAdvisor only sees {{ $value }} containers"
+
+      - alert: SystemdUnitFailed
+        # A service without a port slips through every HTTP and port check.
+        expr: decolab_systemd_units_failed > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A systemd unit is in state failed"
+          description: "check-services.sh reports {{ $value }} unit(s) in state failed: systemctl --failed"
+
+      - alert: SystemdUnitRestartLoop
+        # Worse than failed: a unit that keeps restarting looks "active" now
+        # and then, burns CPU time and floods the journal, unnoticed.
+        expr: decolab_systemd_units_restart_loop > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A systemd unit is stuck in a restart loop"
+          description: "{{ $value }} unit(s) with more than 10 restarts. They may look 'active' at times."
+
+      - alert: TailscaleKeyExpiring
+        # An expired device key looks like a total outage from that device.
+        # -1 means "key expiry disabled" and is not counted.
+        expr: decolab_tailscale_keys_expiring > 0
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "A Tailscale device key expires soon"
+          description: "{{ $value }} device(s) with less than 14 days left. Log in again with 'tailscale up' or disable key expiry in the admin console."
+
+  - name: perses
+    interval: 60s
+    rules:
+      - alert: PersesDashboardError
+        # Perses counts render errors (broken query, missing plugin) only
+        # while someone looks. This catches the one empty panel among many,
+        # and errors after a Perses update. Perses being gone is TargetDown.
+        expr: increase(perses_dashboard_render_errors_total[1h]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Perses: dashboard {{ $labels.dashboard }} had render errors"
+          description: "{{ $value | humanize }} errors in the last hour. Open the dashboard and look for the empty or red panel; check its query in config/perses/provisioning/dashboard-{{ $labels.dashboard }}.json."
+
+  - name: internet
+    interval: 60s
+    rules:
+      # scripts/speedtest.sh measures every 6 hours and the values stay until
+      # the next run, so "for: 6h30m" needs TWO bad results in a row: a single
+      # outlier (busy server, someone downloading) stays quiet. The yardstick
+      # is your own best value of the week, not a contract figure, so the rule
+      # still fits after a change of plan.
+      - alert: InternetDownloadSlow
+        expr: decolab_speedtest_download_mbit < 0.5 * max_over_time(decolab_speedtest_download_mbit[7d])
+        for: 6h30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Internet: download below half of the week's best for two measurements"
+          description: "Last {{ $value | humanize }} Mbit/s. History: Perses, dashboard Internet. Check the router first, then your provider's outage page."
+      - alert: InternetUploadSlow
+        expr: decolab_speedtest_upload_mbit < 0.5 * max_over_time(decolab_speedtest_upload_mbit[7d])
+        for: 6h30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Internet: upload below half of the week's best for two measurements"
+          description: "Last {{ $value | humanize }} Mbit/s. History: Perses, dashboard Internet."
+      # Two runs missed: either the internet was down or every server (or
+      # librespeed-cli itself) fails. The speed test log says which.
+      - alert: InternetMeasurementMissing
+        expr: time() - decolab_speedtest_last_success_timestamp_seconds > 13 * 3600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Internet: no successful speed test for more than 13 hours"
+          description: "The reason is in /var/log/decolab/speedtest.log (FAILED lines) and in the field error of the speed test history."

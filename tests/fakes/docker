@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Fake docker for the tests. The test sets FAKE_DOCKER to a piece of bash
+# that looks at "$@" (and may read stdin) and prints what docker would print;
+# its exit code is docker's. Every call is recorded in FAKE_DOCKER_LOG.
+printf '%s\n' "$*" >>"${FAKE_DOCKER_LOG:-/dev/null}"
+eval "${FAKE_DOCKER:-exit 0}"

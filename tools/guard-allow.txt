@@ -1,0 +1,55 @@
+# Reviewed exceptions for tools/guard.sh
+# Format: <path glob><TAB><exact match>. Only harmless values belong here:
+# this file is public. Never add a real address, name or secret.
+
+# Copyright holder (the project is published under this name on purpose)
+LICENSE-MIT	Daniel
+LICENSE-MIT	Enki
+NOTICE	Daniel
+NOTICE	Enki
+
+# Release signing key, under the publisher's public GitHub noreply address
+config/host/release-signers	Daniel
+config/host/release-signers	Enki
+
+# Docker address pool used as the default example (internal Docker networks)
+decolab.conf.example	10.210.0.0
+INSTALL.md	10.210.0.0
+install.sh	10.210.0.0
+tests/test-install.sh	10.210.0.0
+tests/test-install.sh	10.99.0.0
+tools/vm-probe/guest.sh	10.210.0.0
+
+# CGNAT range used by Tailscale, named in a config check
+lib/config.sh	100.64.0.0
+
+# Decolab's fixed Docker networks (dns_net 172.20.0.0/24, Kuma 172.20.1.0/24)
+compose/core.yml	172.20.0.2
+compose/core.yml	172.20.0.3
+compose/core.yml	172.20.0.0
+stacks/uptime-kuma/compose.yml	172.20.1.10
+stacks/uptime-kuma/compose.yml	172.20.1.0
+decolab.conf.example	172.20.0.0
+lib/config.sh	172.20.0.0
+tests/test-config.sh	172.20.0.0
+config/unbound/unbound.conf	172.20.0.0
+tests/test-compose.sh	172.20.0.2
+tests/test-configs.sh	172.20.0.0
+
+# Private and link-local ranges, named in Unbound's DNS rebinding protection
+config/unbound/unbound.conf	10.0.0.0
+config/unbound/unbound.conf	172.16.0.0
+config/unbound/unbound.conf	192.168.0.0
+config/unbound/unbound.conf	169.254.0.0
+
+# Public resolver for Uptime Kuma, so the watcher does not depend on Pi-hole
+stacks/uptime-kuma/compose.yml	8.8.8.8
+
+# Well-known ranges the firewall classifies a login by: Tailscale's CGNAT
+# range and IPv6 prefix (published by Tailscale), and IPv6 unique local
+# addresses (RFC 4193). No address of any real network.
+bin/decolab-firewall	100.64.0.0
+bin/decolab-firewall	fc00::
+bin/decolab-firewall	fd7a:115c:a1e0::
+tests/data/nft-list-decolab.txt	fc00::
+tests/fakes/panel-host.sh	10.210.0.0

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Fake flock for the tests (macOS has none): "flock -n FD" succeeds unless
+# FAKE_FLOCK_BUSY=1, which plays a lock held by another run.
+[ "${FAKE_FLOCK_BUSY:-0}" = 1 ] && exit 1
+exit 0

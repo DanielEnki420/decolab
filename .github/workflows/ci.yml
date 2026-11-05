@@ -1,0 +1,45 @@
+# Decolab CI: the same checks as tools/check.sh on your machine.
+#
+# Everything is pinned: the action by commit, the tools by version and
+# checksum (the versions the repository was checked with locally). No
+# secrets are used, and the token can only read.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0 # guard and gitleaks read the whole history
+          persist-credentials: false
+      - name: tools
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o sc.tar.xz https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          echo "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198  sc.tar.xz" | sha256sum -c -
+          tar xJf sc.tar.xz
+          curl -fsSL -o gl.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gl.tar.gz" | sha256sum -c -
+          tar xzf gl.tar.gz gitleaks
+          mkdir -p bin && mv shellcheck-v0.11.0/shellcheck gitleaks bin/
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: shellcheck, Python syntax, guard, gitleaks
+        run: tools/check.sh lint
+      # promtool, percli, unbound-checkconf and compose run in Docker; the hook
+      # tests need gitleaks from the step above.
+      - name: contract tests
+        run: tools/check.sh test

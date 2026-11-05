@@ -1,0 +1,18 @@
+# CrowdSec, installed as /etc/crowdsec/config.yaml.local BEFORE crowdsec
+# itself is installed.
+#
+# The local API listens on 18080 instead of the package default 8080.
+# crowdsec and cscli lay this file over config.yaml. Because it exists before
+# the package is installed, the package's postinst writes 18080 into
+# local_api_credentials.yaml, and the firewall bouncer picks the port up when
+# it is installed.
+#
+# Why not 8080: CrowdSec is installed before the Docker stacks and would win
+# the port. A later service on 8080 would then fail, or after a reboot
+# whoever starts first would win. If CrowdSec loses, the bouncer has no local
+# API and blocks nobody.
+#
+# The file belongs to no package: updates neither ask about it nor replace it.
+api:
+  server:
+    listen_uri: 127.0.0.1:18080

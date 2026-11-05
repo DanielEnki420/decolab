@@ -1,0 +1,10 @@
+#!/bin/sh
+# NUT (HW_UPS), installed as /usr/local/sbin/decolab-ups-event (root:root 755):
+# the CMDSCRIPT of upssched.
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER} ${DECOLAB_DIR}
+#
+# upssched runs as nut. The notification needs the bot token, which only the
+# Decolab user can read, so the event is handed to ups-event.sh as that user
+# (sudoers: /etc/sudoers.d/decolab-nut allows exactly this one script).
+exec /usr/bin/sudo -n -u ${DECOLAB_USER} ${DECOLAB_DIR}/scripts/ups-event.sh "$1"

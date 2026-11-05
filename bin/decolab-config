@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# decolab-config - check a Decolab configuration file
+#
+#   decolab-config check [FILE]     validate FILE (default: ./decolab.conf)
+#
+# Exit codes: 0 valid, 1 invalid, 2 usage error.
+set -euo pipefail
+
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source-path=SCRIPTDIR/..
+# shellcheck source=lib/config.sh
+. "$here/../lib/config.sh"
+
+usage() {
+  sed -n '2,6s/^# \{0,1\}//p' "${BASH_SOURCE[0]}" >&2
+  exit 2
+}
+
+[ $# -ge 1 ] || usage
+cmd=$1
+shift
+case $cmd in
+  check)
+    [ $# -le 1 ] || usage
+    file=${1:-decolab.conf}
+    if decolab_config_load "$file"; then
+      printf 'OK: %s is valid (%s settings)\n' "$file" "$DECOLAB_CONFIG_COUNT"
+    else
+      printf 'INVALID: %s has %s error(s)\n' "$file" "$DECOLAB_CONFIG_ERRORS" >&2
+      exit 1
+    fi
+    ;;
+  -h | --help | help) usage ;;
+  *) usage ;;
+esac

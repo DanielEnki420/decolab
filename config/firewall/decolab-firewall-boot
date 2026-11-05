@@ -1,0 +1,55 @@
+#!/bin/sh
+# HARDENING=yes, installed as /usr/local/sbin/decolab-firewall-boot (root:root 755).
+#
+# The way back that does not depend on anything else: no Docker, no network,
+# no Decolab checkout (it may be what broke). Root-owned, so root does not
+# run a file the user can change for this one.
+#
+#   decolab-firewall-boot boot   at every start (decolab-firewall.service):
+#                                load /etc/decolab/firewall.nft, unless a
+#                                break-glass file exists or an apply was never
+#                                confirmed - then switch everything off
+#   decolab-firewall-boot off    switch the firewall and the SSH drop-in off
+#                                (the 5-minute timer of an apply runs this)
+#
+# Break-glass: a file named decolab-firewall-off on the boot partition (the
+# FAT partition of the SD card, readable from any computer) switches it all
+# off at the next start.
+#
+# FW_ROOT is a prefix for every path, for the tests only.
+set -u
+r=${FW_ROOT:-}
+rules=$r/etc/decolab/firewall.nft
+pending=$r/var/lib/decolab/firewall-pending
+confirmed=$r/var/lib/decolab/firewall-confirmed
+dropin=$r/etc/ssh/sshd_config.d/01-decolab.conf
+say() { logger -t decolab-firewall "$*" 2>/dev/null; echo "decolab-firewall: $*"; }
+
+off() {
+  nft delete table inet decolab 2>/dev/null
+  if [ -e "$dropin" ]; then
+    rm -f "$dropin"
+    sshd -t && { systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null; }
+  fi
+  systemctl disable decolab-firewall.service >/dev/null 2>&1
+  rm -f "$pending" "$confirmed"
+  say "OFF: $1. The firewall is off and SSH is as before Decolab. Way back in: decolab-firewall apply"
+}
+
+case ${1:-} in
+  off) off "${2:-switched off by hand or by the timer of an unconfirmed apply}" ;;
+  boot)
+    for f in "$r/boot/firmware/decolab-firewall-off" "$r/boot/decolab-firewall-off"; do
+      if [ -e "$f" ]; then
+        off "break-glass file $f"
+        exit 0
+      fi
+    done
+    if [ -e "$pending" ]; then
+      off "an apply was not confirmed before this start"
+      exit 0
+    fi
+    [ -e "$rules" ] || { say "no $rules: nothing to load"; exit 0; }
+    nft -f "$rules" && say "loaded $rules" ;;
+  *) echo "usage: decolab-firewall-boot boot|off" >&2 && exit 2 ;;
+esac

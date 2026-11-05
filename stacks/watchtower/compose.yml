@@ -1,0 +1,40 @@
+# Watchtower: updates containers that opt in with the label
+#   com.centurylinklabs.watchtower.enable=true
+# None of Decolab's own containers carry it: they are pinned and updated with
+# Decolab releases. Use it for containers you add yourself.
+#
+# nickfedor/watchtower is the maintained fork; the original containrrr
+# project was archived in December 2025. Pinned like everything else.
+
+name: decolab-watchtower
+
+services:
+  watchtower:
+    image: nickfedor/watchtower@sha256:3175c006eb20112f3a70f7002f82dbf4a4078c97e7033735a4d153668fc3dfb1
+    container_name: watchtower
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    # Talks to the socket proxy over TCP, so it needs neither root nor the
+    # socket. It can still stop and create containers through the proxy:
+    # treat it as privileged.
+    user: "${DECOLAB_UID}:${DECOLAB_GID}"
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    mem_limit: 128m
+    environment:
+      TZ: ${TZ}
+      DOCKER_HOST: tcp://socket-proxy:2375
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_TIMEOUT: 60s
+    networks: [default, socket_net]
+
+networks:
+  default:
+  socket_net:
+    external: true
+    name: decolab_socket_net

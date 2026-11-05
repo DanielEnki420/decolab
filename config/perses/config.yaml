@@ -1,0 +1,66 @@
+# Perses: dashboards over Prometheus.
+#
+# Perses keeps no state of its own. Everything it shows comes from the files
+# in config/perses/provisioning; its database is only a cache of those files
+# on a tmpfs, refilled at every start.
+
+database:
+  file:
+    folder: "/perses/db"
+    extension: "yaml"
+
+provisioning:
+  folders:
+    - "/perses/provisioning"
+  # Changes to the files are picked up without a restart.
+  enable_watch: true
+
+security:
+  # Read-only: the UI cannot create, change or delete dashboards or data
+  # sources. Changes are made in the files, like everything else in Decolab.
+  readonly: true
+  # No login, on purpose. Perses listens on 127.0.0.1 only and is reached
+  # through tailscale serve (or an SSH tunnel). A login would need a secret
+  # key and a user database: state outside the repository that would have to
+  # be backed up, for little gain. Lost device: remove it from the tailnet.
+  #
+  # Two warnings at start are therefore expected:
+  #  - "enable_auth is false ...": defused by datasource.proxy below.
+  #  - "encryption_key is not provided": it only encrypts stored secrets and
+  #    login tokens, and there are none.
+  enable_auth: false
+
+datasource:
+  # Read-only is NOT enough. readonly only removes the API's write paths. The
+  # pass-through to data sources stays, including the "unsaved" path
+  # (POST /proxy/unsaved/...), which accepts ANY data source in the request
+  # body: without a login, anyone who reaches Perses could make it send
+  # requests to any host in its Docker network.
+  #
+  # So the pass-through may only reach Prometheus. The endpoint list in
+  # provisioning/datasource.yaml applies to the stored data source only; this
+  # host list applies to every path, "unsaved" included.
+  proxy:
+    allowed_hosts:
+      - prometheus
+    http:
+      allowed_schemes:
+        - http
+  # There is exactly one global data source. Switching the others off removes
+  # their pass-through paths as well.
+  project:
+    disable: true
+  disable_local: true
+
+plugin:
+  # Only the plugins the dashboards use. Disabled plugins are not served at
+  # all (measured: Loki -> 404): less third-party code in the browser. If a
+  # new dashboard needs another panel type, add it here, or Perses will not
+  # load that dashboard.
+  enabled:
+    - Prometheus        # data source + PrometheusTimeSeriesQuery
+    - StatChart
+    - TimeSeriesChart
+    - BarChart
+    - Table
+    - Markdown

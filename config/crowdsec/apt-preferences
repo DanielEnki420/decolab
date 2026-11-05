@@ -1,0 +1,13 @@
+# Installed as /etc/apt/preferences.d/crowdsec.
+#
+# CrowdSec comes ONLY from packagecloud.io/crowdsec, never from Debian.
+# Debian ships its own, much older crowdsec under the same name. Without this
+# pin, "apt install crowdsec" silently installs the Debian version when the
+# packagecloud source is missing; with it, apt finds no candidate and stops
+# loudly.
+#
+# o=Debian matches the release, -security, -updates and -backports. The
+# Raspberry Pi repository ships no crowdsec.
+Package: crowdsec*
+Pin: release o=Debian
+Pin-Priority: -1

@@ -1,0 +1,11 @@
+{
+ "kind": "Project",
+ "metadata": {
+  "name": "decolab"
+ },
+ "spec": {
+  "display": {
+   "name": "Decolab"
+  }
+ }
+}

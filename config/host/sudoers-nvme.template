@@ -1,0 +1,9 @@
+# NVMe health (HW_NVME), installed as /etc/sudoers.d/decolab-nvme (440 root:root).
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER}
+#
+# scripts/check-nvme-health.sh reads the SMART values of the data disk. That
+# needs root; the Decolab user may run exactly this one command, with exactly
+# this argument, and nothing else. sudo finds /usr/sbin/nvme through its
+# secure_path, also from cron.
+${DECOLAB_USER} ALL=(root) NOPASSWD: /usr/sbin/nvme smart-log /dev/nvme0n1

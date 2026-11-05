@@ -1,0 +1,56 @@
+# Fan control (HW_FAN), installed as /etc/systemd/system/decolab-fan.service.
+#
+# install.sh renders this file with exactly these variables: ${DECOLAB_USER} ${DECOLAB_DIR}
+#
+# Runs as the Decolab user in group gpio: config/udev/61-decolab-fan-pwm.rules
+# lets that group write the PWM file (matched by the device NAME: a rule on
+# a fixed hwmon number silently stopped matching after a kernel update, and
+# the fan froze at its last value).
+#
+# Hardened in the unit itself, each line measured on the original system:
+# - NO ProtectKernelTunables: the service WRITES /sys/class/hwmon/*/pwm1.
+#   With it /sys is read-only and the fan no longer speeds up, silently.
+# - Network stays allowed: alarms go out through decolab-notify (curl).
+#   Without it the fan would run, but no warning of a dead sensor would
+#   ever arrive.
+# - ReadWritePaths with "-": fan.prom and the energy counter. Without the
+#   textfile directory the curves stood still for two weeks as flat lines;
+#   the "-" lets the fan start even if a directory is missing: cooling must
+#   never depend on a metrics folder.
+[Unit]
+Description=Decolab fan control
+After=multi-user.target
+
+[Service]
+Type=simple
+User=${DECOLAB_USER}
+Group=gpio
+ExecStart=/usr/bin/python3 -I ${DECOLAB_DIR}/services/fan_control.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=-/var/lib/node_exporter -/var/lib/decolab -/run/decolab -/var/log/decolab
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RemoveIPC=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

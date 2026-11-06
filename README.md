@@ -95,8 +95,12 @@ use the documentation ranges `192.0.2.0/24` and `2001:db8::/32`.
 
 ## Support
 
-Decolab is provided as is, without support or warranty. Security issues:
-see [SECURITY.md](SECURITY.md).
+Decolab is provided as is, without support or warranty.
+
+- Questions, ideas, your setup: [Discussions](https://github.com/DanielEnki420/decolab/discussions)
+  (a hobby project: answers come when time allows)
+- Bugs: [Issues](https://github.com/DanielEnki420/decolab/issues)
+- Security issues: privately, see [SECURITY.md](SECURITY.md)
 
 ## License
 

@@ -1,0 +1,10 @@
+# Shown when someone clicks "New issue": questions go to Discussions,
+# security problems to the private report, so Issues stay for bugs.
+blank_issues_enabled: true
+contact_links:
+  - name: Question or idea
+    url: https://github.com/DanielEnki420/decolab/discussions
+    about: Ask, share your setup or suggest something in Discussions.
+  - name: Security problem
+    url: https://github.com/DanielEnki420/decolab/security/advisories/new
+    about: Report it privately, not as a public issue (see SECURITY.md).

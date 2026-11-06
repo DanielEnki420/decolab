@@ -62,3 +62,5 @@ README.de.md	Daniel
 README.de.md	Enki
 SECURITY.md	Daniel
 SECURITY.md	Enki
+.github/ISSUE_TEMPLATE/config.yml	Daniel
+.github/ISSUE_TEMPLATE/config.yml	Enki

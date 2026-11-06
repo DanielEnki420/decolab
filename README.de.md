@@ -43,4 +43,7 @@ liegen außerhalb des Repos.
 [SECURITY.md](SECURITY.md).
 
 **Lizenz:** wahlweise [MIT](LICENSE-MIT) oder [Apache-2.0](LICENSE-APACHE).
-Ohne Gewähr und ohne Support.
+Ohne Gewähr und ohne Support. Fragen und Ideen (gern auf Deutsch; Antworten,
+wenn Zeit ist):
+[Discussions](https://github.com/DanielEnki420/decolab/discussions), Fehler:
+[Issues](https://github.com/DanielEnki420/decolab/issues).

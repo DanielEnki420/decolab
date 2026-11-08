@@ -67,6 +67,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   font-size: 17.9px; flex-shrink: 0;
 }
 #hdr .spacer { flex: 1; }
+.logout-form { margin: 0; display: contents; }
 .hdr-pill {
   display: flex; align-items: center; gap: 6px;
   background: var(--surface); border: 1px solid var(--border);
@@ -98,6 +99,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 .hdr-akku.knapp .akku-zahl { color: var(--red); }
 .fs-btn { cursor:pointer; border:none; background:var(--card,#16241b); padding:0 9px; min-height:30px; display:flex; align-items:center; justify-content:center; color:var(--text-2); transition:color .15s, background .15s; }
 .fs-btn:hover { color:var(--text,#e8f3ec); }
+.logout-btn { font: inherit; font-size: 13.4px; }
 .fs-btn svg { width:16px; height:16px; display:block; }
 #menu-btn { display: none; background: none; border: none; color: var(--text); font-size: 24.6px; cursor: pointer; padding: 4px 8px; }
 

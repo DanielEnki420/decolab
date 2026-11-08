@@ -16,6 +16,12 @@ Security model
     SECRETS_DIR/panel-token: as "Authorization: Bearer TOKEN", or as the
     cookie that POST /login sets. Even read-only data (container names,
     versions, addresses) helps an attacker in the LAN.
+  - The cookie is not the panel token but v1.EXPIRY.MAC, an HMAC over the expiry
+    with a key derived from the token. The server checks the expiry itself
+    (30 days); a new panel-token (and a restart) ends every session. Cookies
+    are not kept apart by port, so other services under the same host name
+    see this cookie: they get a 30-day session, never the token. Secure is
+    set on the tailnet name (HTTPS through tailscale serve).
   - The Host header must be one of this host's names (DNS rebinding: a page on
     a foreign site cannot make the browser talk to the panel under its own
     name). POST /login also checks Origin.
@@ -39,6 +45,7 @@ Hooks for the tests (all optional):
   DECOLAB_STATE_DIR instead of /var/lib/decolab
 """
 
+import hashlib
 import hmac
 import http.server
 import json
@@ -65,6 +72,7 @@ STATE_DIR = os.environ.get("DECOLAB_STATE_DIR", "/var/lib/decolab")
 SAMPLE_S = float(os.environ.get("PANEL_SAMPLE_S", "5"))
 HISTORY_LEN = 60
 COOKIE = "decolab_panel"
+SESSION_S = 30 * 24 * 3600
 MAX_BODY = 512
 
 # The web interfaces the panel links to. "reach": web_ui = published on
@@ -132,6 +140,34 @@ def read_token(conf):
     if len(token) < 32:
         raise ValueError(f"{path}: token shorter than 32 characters")
     return token
+
+
+def _cookie_key(token):
+    return hmac.new(token.encode(), b"decolab-panel-cookie-key-v1", hashlib.sha256).digest()
+
+
+def make_session(token, now=None):
+    """The cookie value: v1.EXPIRY.MAC, valid for SESSION_S seconds."""
+    exp = str(int(now if now is not None else time.time()) + SESSION_S)
+    mac = hmac.new(_cookie_key(token), b"v1|" + exp.encode(), hashlib.sha256).hexdigest()
+    return f"v1.{exp}.{mac}"
+
+
+def session_ok(token, value, now=None):
+    """True for a cookie value make_session made with this token, not expired."""
+    if not value or len(value) > 100 or not value.isascii():
+        return False
+    parts = value.split(".")
+    if len(parts) != 3 or parts[0] != "v1":
+        return False
+    exp, mac = parts[1], parts[2]
+    if not (exp.isdigit() and len(exp) <= 11) or not re.fullmatch(r"[0-9a-f]{64}", mac):
+        return False
+    t = int(now if now is not None else time.time())
+    if not t < int(exp) <= t + SESSION_S + 300:
+        return False
+    want = hmac.new(_cookie_key(token), b"v1|" + exp.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(mac, want)
 
 
 def allowed_hosts(conf):
@@ -526,7 +562,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return True
         for part in self.headers.get("Cookie", "").split(";"):
             k, _, v = part.strip().partition("=")
-            if k == COOKIE and hmac.compare_digest(v.encode(), token):
+            if k == COOKIE and session_ok(self.server.token, v):
                 return True
         return False
 
@@ -579,11 +615,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.close_connection = True
         if not self.host_ok():
             return self.send(421, {"error": "unknown host name"})
-        if urllib.parse.urlsplit(self.path).path != "/login":
+        action = urllib.parse.urlsplit(self.path).path
+        if action not in ("/login", "/logout"):
             return self.send(405, {"error": "read-only"}, extra={"Allow": "GET, HEAD"})
         origin = self.headers.get("Origin")
         if origin and host_only(urllib.parse.urlsplit(origin).netloc) not in self.server.hosts:
             return self.send(403, {"error": "foreign origin"})
+        # Secure only where the browser came over HTTPS: the tailnet name
+        # exists only through tailscale serve; localhost and the LAN address
+        # are plain HTTP, where a Secure cookie would never come back.
+        secure = "; Secure" if host_only(self.headers.get("Host")).endswith(".ts.net") else ""
+        attrs = f"HttpOnly; SameSite=Strict; Path=/{secure}"
+        if action == "/logout":
+            # ends the session in this browser only; a copied cookie stays
+            # valid until it expires or panel-token changes
+            return self.send(303, b"", "text/plain", extra={"Location": "/", "Set-Cookie": f"{COOKIE}=; {attrs}; Max-Age=0"})
         try:
             n = int(self.headers.get("Content-Length", "0"))
         except ValueError:
@@ -595,7 +641,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not hmac.compare_digest(given.encode(), self.server.token.encode()):
             time.sleep(1)  # slows guessing; the token has 48 random characters anyway
             return self.send(303, b"", "text/plain", extra={"Location": "/?wrong=1"})
-        cookie = f"{COOKIE}={self.server.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000"
+        cookie = f"{COOKIE}={make_session(self.server.token)}; {attrs}; Max-Age={SESSION_S}"
         return self.send(303, b"", "text/plain", extra={"Location": "/", "Set-Cookie": cookie})
 
     def refuse(self):

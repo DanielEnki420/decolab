@@ -83,7 +83,38 @@ cookie=$(sed -n 's/^Set-Cookie: \([^;]*\);.*/\1/p' "$t_tmp/l2.h" | tr -d '\r')
 same "  the cookie opens the API" "$(req l3 -H "Cookie: $cookie" "$base/api/v1/system")" 200
 same "  ... and the dashboard" "$(req l4 -H "Cookie: $cookie" "$base/")" 200
 check "  ... which loads panel.js" 0 'src="/static/panel.js"' -- cat "$t_tmp/l4.json"
+same "  Bearer still works next to cookies" "$(req l3b "${auth[@]}" "$base/api/v1/system")" 200
+check "  the cookie is not the token" 1 "" -- grep -qF "$token" "$t_tmp/l2.h"
+if [[ $cookie =~ ^decolab_panel=v1\.[0-9]{10,11}\.[0-9a-f]{64}$ ]]; then t_ok "  ... but a signed expiry (v1.EXP.MAC)"; else t_fail "  ... but a signed expiry (v1.EXP.MAC)" "got '$cookie'"; fi
+check "  ... valid for 30 days" 0 "Max-Age=2592000" -- cat "$t_tmp/l2.h"
+refute "  ... not Secure over plain HTTP" "Secure"
+# mint NAME TOKEN AGE_S - a cookie as the server makes it, AGE_S seconds old
+mint() { python3 -I -c 'import sys,time; sys.path.insert(0,sys.argv[1]); import server; print(server.make_session(sys.argv[2], time.time()-float(sys.argv[3])))' "$t_root/panel" "$1" "$2"; }
+c_ok=$(mint "$token" 0)
+same "  a freshly minted cookie: 200 (the test's mint matches)" "$(req c0 -H "Cookie: decolab_panel=$c_ok" "$base/api/v1/system")" 200
+same "  the raw token as cookie (old format): 401" "$(req c1 -H "Cookie: decolab_panel=$token" "$base/api/v1/system")" 401
+same "  ... and the page is the login" "$(req c1p -H "Cookie: decolab_panel=$token" "$base/")" 200
+check "  ... login page" 0 "Panel token" -- cat "$t_tmp/c1p.json"
+same "  an expired cookie: 401" "$(req c2 -H "Cookie: decolab_panel=$(mint "$token" 2592100)" "$base/api/v1/system")" 401
+same "  a cookie from an old token: 401" "$(req c3 -H "Cookie: decolab_panel=$(mint "old-${token}" 0)" "$base/api/v1/system")" 401
+exp=${c_ok#v1.}; exp=${exp%%.*}; mac=${c_ok##*.}
+flip=$(printf '%s' "$mac" | tr '0-9a-f' '1-9a-f0')
+same "  a tampered MAC: 401" "$(req c4 -H "Cookie: decolab_panel=v1.$exp.$flip" "$base/api/v1/system")" 401
+same "  a later expiry with the old MAC: 401" "$(req c5 -H "Cookie: decolab_panel=v1.$((exp + 1)).$mac" "$base/api/v1/system")" 401
+same "  an uppercase MAC: 401" "$(req c6 -H "Cookie: decolab_panel=v1.$exp.$(printf '%s' "$mac" | tr a-f A-F)" "$base/api/v1/system")" 401
+same "  a short MAC: 401" "$(req c7 -H "Cookie: decolab_panel=v1.$exp.${mac:2}" "$base/api/v1/system")" 401
+same "  another version prefix: 401" "$(req c8 -H "Cookie: decolab_panel=v2.$exp.$mac" "$base/api/v1/system")" 401
+same "  no version prefix: 401" "$(req c9 -H "Cookie: decolab_panel=$exp.$mac" "$base/api/v1/system")" 401
+same "  a non-digit expiry: 401" "$(req c10 -H "Cookie: decolab_panel=v1.${exp}x.$mac" "$base/api/v1/system")" 401
+far=$(python3 -I -c 'import sys,hmac,hashlib; t=sys.argv[1]; k=hmac.new(t.encode(),b"decolab-panel-cookie-key-v1",hashlib.sha256).digest(); e="99999999999"; print("v1."+e+"."+hmac.new(k,b"v1|"+e.encode(),hashlib.sha256).hexdigest())' "$token")
+same "  a correctly signed far-future expiry: 401" "$(req c11 -H "Cookie: decolab_panel=$far" "$base/api/v1/system")" 401
+same "  login on the tailnet name: redirect" "$(req l9 -H "Host: probe.tailtest.ts.net:$port" --data-urlencode "token=$token" "$base/login")" 303
+check "  ... and the cookie is Secure there (HTTPS through tailscale serve)" 0 "SameSite=Strict; Path=/; Secure" -- cat "$t_tmp/l9.h"
+same "  logout: redirect" "$(req lo1 -X POST "$base/logout")" 303
+check "  ... clears the cookie with the same attributes" 0 "Set-Cookie: decolab_panel=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" -- cat "$t_tmp/lo1.h"
+same "  logout from a foreign origin: 403" "$(req lo2 -X POST -H "Origin: https://evil.example" "$base/logout")" 403
 same "  login from a foreign origin: 403" "$(req l5 -H "Origin: https://evil.example" --data-urlencode "token=$token" "$base/login")" 403
+check "  ... (its headers)" 0 "403" -- cat "$t_tmp/l5.h"
 refute "  ... without a cookie" "Set-Cookie"
 same "  login with Origin null: 403" "$(req l6 -H "Origin: null" --data-urlencode "token=$token" "$base/login")" 403
 same "  login from this host's origin: accepted" "$(req l7 -H "Origin: $base" --data-urlencode "token=$token" "$base/login")" 303

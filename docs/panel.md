@@ -8,8 +8,17 @@ It shows; it does not act. No route reboots, restarts, updates or writes.
 ## Access
 
 - The token is in `SECRETS_DIR/panel-token` (made by install.sh). A browser
-  asks for it once and keeps it as an HttpOnly cookie for 30 days. Scripts
+  asks for it once; the panel then sets a session cookie for 30 days. Scripts
   send `Authorization: Bearer TOKEN`.
+- The cookie is not the token but a signed expiry (`v1.EXPIRY.MAC`); the
+  panel checks the expiry itself. Why: browsers do not keep cookies apart by
+  port, so every other service under the same host name sees this cookie.
+  They get a session that ends, never the token. On the tailnet name
+  (HTTPS through `tailscale serve`) the cookie is also `Secure`.
+- **Log out** (top right) ends the session in this browser only. To end
+  every session, including a copied cookie: write a new token to
+  `SECRETS_DIR/panel-token` and restart `decolab-panel.service` (the panel
+  reads the token at start). That also changes the token for scripts.
 - Only this host's names are accepted in the `Host` header: localhost,
   127.0.0.1, the host name, `HOST_LAN_IP`, and with Tailscale
   `HOST.TAILNET_NAME.ts.net`. Anything else gets 421 (DNS rebinding).
@@ -19,7 +28,7 @@ It shows; it does not act. No route reboots, restarts, updates or writes.
 
 ## API
 
-All routes are `GET`; every other method gets 405. Everything but `health`
+All API routes are `GET`; every other method gets 405 (only the forms `POST /login` and `POST /logout` exist besides). Everything but `health`
 needs the token. What a host does not have is `{"available": false}` (or
 `null` for a single value), never an error.
 

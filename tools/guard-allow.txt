@@ -64,3 +64,5 @@ SECURITY.md	Daniel
 SECURITY.md	Enki
 .github/ISSUE_TEMPLATE/config.yml	Daniel
 .github/ISSUE_TEMPLATE/config.yml	Enki
+CONTRIBUTING.md	Daniel
+CONTRIBUTING.md	Enki

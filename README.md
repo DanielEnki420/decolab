@@ -134,6 +134,7 @@ Decolab is provided as is, without support or warranty.
   (a hobby project: answers come when time allows)
 - Bugs: [Issues](https://github.com/DanielEnki420/decolab/issues)
 - Security issues: privately, see [SECURITY.md](SECURITY.md)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 

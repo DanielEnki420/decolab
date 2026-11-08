@@ -67,6 +67,40 @@ same "  ... and curl was not called" "$(wc -c <"$FAKE_CURL_LOG" | tr -d ' ')" "0
 check "decolab-notify sends" 0 "" -- env FAKE_CURL_REPLY='{"ok":true}' "$t_root/bin/decolab-notify" "From Python" "text"
 check "decolab-notify reports failure" 1 "notification failed" -- env FAKE_CURL_REPLY='nope' "$t_root/bin/decolab-notify" "From Python"
 
+echo "notifications: ntfy"
+topic="decolabtopic"; topic="${topic}7Q"
+ntok="tk_ntfytoken"; ntok="${ntok}99"
+printf 'NTFY_URL=https://ntfy.example/%s\n' "$topic" >"$t_tmp/secrets/ntfy.env"
+printf 'NTFY_URL=https://ntfy.example/%s\nNTFY_TOKEN=%s\n' "$topic" "$ntok" >"$t_tmp/secrets/ntfy-tok.env"
+printf 'NTFY_URL=https://ntfy.example/a b\n' >"$t_tmp/secrets/ntfy-bad.env"
+chmod 600 "$t_tmp/secrets/"ntfy*.env
+ntfy_ok='{"id":"x1","time":1,"event":"message","topic":"t"}'
+: >"$FAKE_CURL_LOG"
+check "ntfy succeeds on event:message" 0 "" -- env FAKE_CURL_REPLY="$ntfy_ok" bash -c 'NOTIFY_FILE=$2 bash -c '"'"'. "$1/lib/common.sh"; decolab_init; NOTIFY=ntfy; NTFY_ENV_FILE=$NOTIFY_FILE; notify "Backup ✅" "done \"quoted\" \\ back"'"'"' _ "$1"' _ "$t_root" "$t_tmp/secrets/ntfy.env"
+check "  nothing secret is an argument (topic, token)" 1 "" -- grep -e "^ARGS:.*$topic" "$FAKE_CURL_LOG"
+check "  curl reads its config from stdin only" 0 "" -- grep -x "ARGS: -sS -m 10 -K -" "$FAKE_CURL_LOG"
+check "  posts to the server, not to the topic URL" 0 "" -- grep -x 'STDIN:url = "https://ntfy.example/"' "$FAKE_CURL_LOG"
+check "  the body names the topic, title and text as JSON" 0 "" -- python3 -I -c '
+import json, re, sys
+log = open(sys.argv[1], encoding="utf-8").read()
+line = [l for l in log.splitlines() if l.startswith("data-binary = ")][0]
+body = json.loads(json.loads(line[len("data-binary = "):]))
+assert body == {"topic": sys.argv[2], "title": "Backup \u2705", "message": "done \"quoted\" \\ back"}, body
+' "$FAKE_CURL_LOG" "$topic"
+check "  no token header without a token" 1 "" -- grep "Authorization" "$FAKE_CURL_LOG"
+: >"$FAKE_CURL_LOG"
+check "ntfy with a token" 0 "" -- env FAKE_CURL_REPLY="$ntfy_ok" bash -c 'NOTIFY_FILE=$2 bash -c '"'"'. "$1/lib/common.sh"; decolab_init; NOTIFY=ntfy; NTFY_ENV_FILE=$NOTIFY_FILE; notify Hi'"'"' _ "$1"' _ "$t_root" "$t_tmp/secrets/ntfy-tok.env"
+check "  sends it as a bearer header, in the config" 0 "" -- grep -x "header = \"Authorization: Bearer $ntok\"" "$FAKE_CURL_LOG"
+check "  ... never as an argument" 1 "" -- grep -e "^ARGS:.*$ntok" "$FAKE_CURL_LOG"
+check "ntfy refusing fails loudly" 1 "ntfy refused" -- env FAKE_CURL_REPLY='{"code":40301,"error":"forbidden"}' bash -c 'NOTIFY_FILE=$2 bash -c '"'"'. "$1/lib/common.sh"; decolab_init; NOTIFY=ntfy; NTFY_ENV_FILE=$NOTIFY_FILE; notify Alarm2'"'"' _ "$1"' _ "$t_root" "$t_tmp/secrets/ntfy.env"
+check "  ... and is written to notify-errors.log" 0 "title: Alarm2" -- cat "$DECOLAB_LOG_DIR/notify-errors.log"
+check "ntfy: curl failure fails loudly" 1 "curl exit 6" -- env FAKE_CURL_RC=6 bash -c 'NOTIFY_FILE=$2 bash -c '"'"'. "$1/lib/common.sh"; decolab_init; NOTIFY=ntfy; NTFY_ENV_FILE=$NOTIFY_FILE; notify X'"'"' _ "$1"' _ "$t_root" "$t_tmp/secrets/ntfy.env"
+check "ntfy: missing file fails loudly" 1 "cannot read" -- env bash -c 'NOTIFY_FILE=$2 bash -c '"'"'. "$1/lib/common.sh"; decolab_init; NOTIFY=ntfy; NTFY_ENV_FILE=$NOTIFY_FILE; notify X'"'"' _ "$1"' _ "$t_root" "$t_tmp/none.env"
+: >"$FAKE_CURL_LOG"
+check "ntfy: a malformed URL is refused before curl" 1 "" -- env bash -c 'NOTIFY_FILE=$2 bash -c '"'"'. "$1/lib/common.sh"; decolab_init; NOTIFY=ntfy; NTFY_ENV_FILE=$NOTIFY_FILE; notify X'"'"' _ "$1"' _ "$t_root" "$t_tmp/secrets/ntfy-bad.env"
+same "  ... and curl was not called" "$(wc -c <"$FAKE_CURL_LOG" | tr -d ' ')" "0"
+check "ntfy: an URL without a topic is refused" 1 "not like https://ntfy.sh/TOPIC" -- env bash -c 'printf "NTFY_URL=https://ntfy.example\n" >"$3"; chmod 600 "$3"; NOTIFY_FILE=$3 bash -c '"'"'. "$1/lib/common.sh"; decolab_init; NOTIFY=ntfy; NTFY_ENV_FILE=$NOTIFY_FILE; notify X'"'"' _ "$1"' _ "$t_root" x "$t_tmp/secrets/ntfy-host.env"
+
 echo "maintenance flag"
 check "flag names the containers" 0 "[ pihole immich_server ]" -- run 'maintenance_begin pihole immich_server && maintenance_read && echo "[$MAINTENANCE_CONTAINERS]"'
 printf 'pid 999999\npihole\n' >"$DECOLAB_RUN_DIR/maintenance"

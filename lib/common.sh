@@ -18,7 +18,7 @@
 #
 # Paths can be overridden for tests (DECOLAB_CONF, DECOLAB_RUN_DIR,
 # DECOLAB_LOG_DIR, DECOLAB_TEXTFILE_DIR, DECOLAB_STATE_DIR, KUMA_ENV_FILE,
-# TELEGRAM_ENV_FILE):
+# TELEGRAM_ENV_FILE, NTFY_ENV_FILE):
 # a test must never reach the real Uptime Kuma or the real phone.
 # Compatible with bash 3.2 (macOS) and bash 5 (Debian).
 
@@ -171,13 +171,24 @@ kuma_push() {
 #   (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID). Every failure is written to
 #   /var/log/decolab/notify-errors.log as well and returns 1; Telegram's
 #   answer is checked, because curl is happy with any HTTP reply.
+#   NOTIFY=ntfy: publishes to NTFY_URL (https://SERVER/TOPIC) in
+#   SECRETS_DIR/ntfy.env, with NTFY_TOKEN as bearer token if set. The topic
+#   is a secret on a public server: anyone who knows it can read along.
 #   NOTIFY=none: only logs the title.
 notify() {
   local title=$1 text=${2:-} env answer rc=0 why=""
-  if [ "${NOTIFY:-none}" != telegram ]; then
-    log "notification (NOTIFY=${NOTIFY:-none}): $title"
-    return 0
-  fi
+  case ${NOTIFY:-none} in
+    telegram) ;;
+    ntfy)
+      _notify_ntfy "$title" "$text" && return 0
+      log "ERROR: notification failed ($why): $title"
+      printf '%s %s: %s | title: %s\n' "$(date '+%F %T')" "${0##*/}" "$why" "$title" \
+        >>"$DECOLAB_LOG_DIR/notify-errors.log" 2>/dev/null
+      return 1 ;;
+    *)
+      log "notification (NOTIFY=${NOTIFY:-none}): $title"
+      return 0 ;;
+  esac
   env=${TELEGRAM_ENV_FILE:-${SECRETS_DIR:-/nonexistent}/telegram.env}
   if ! read_secrets "$env" TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; then
     why="cannot read $env"
@@ -197,6 +208,49 @@ $text" 2>&1) || rc=$?
   log "ERROR: notification failed ($why): $title"
   printf '%s %s: %s | title: %s\n' "$(date '+%F %T')" "${0##*/}" "$why" "$title" \
     >>"$DECOLAB_LOG_DIR/notify-errors.log" 2>/dev/null
+  return 1
+}
+
+# _notify_ntfy TITLE TEXT - sets why on failure (notify's local)
+#   Everything goes to curl as its config on stdin (-K -): URL, token and
+#   body (JSON, so titles may hold any character) never appear in the
+#   process list. ntfy answers a published message with "event":"message".
+_notify_ntfy() {
+  local env answer rc=0 NTFY_URL="" NTFY_TOKEN=""
+  env=${NTFY_ENV_FILE:-${SECRETS_DIR:-/nonexistent}/ntfy.env}
+  if ! read_secrets "$env" NTFY_URL; then
+    why="cannot read $env"
+    return 1
+  fi
+  if grep '^NTFY_TOKEN=' "$env" >/dev/null 2>&1 && ! read_secrets "$env" NTFY_TOKEN; then
+    why="cannot read NTFY_TOKEN in $env"
+    return 1
+  fi
+  if ! [[ $NTFY_URL =~ ^https?://[A-Za-z0-9.:-]+(/[A-Za-z0-9._-]+)*/[A-Za-z0-9_-]{1,64}$ ]]; then
+    why="NTFY_URL is not like https://ntfy.sh/TOPIC"
+    return 1
+  fi
+  answer=$(N_URL=$NTFY_URL N_TOKEN=$NTFY_TOKEN N_TITLE=$1 N_TEXT=$2 python3 -I -c '
+import json, os
+url = os.environ["N_URL"]
+base, topic = url.rsplit("/", 1)
+body = json.dumps({"topic": topic, "title": os.environ["N_TITLE"],
+                   "message": os.environ["N_TEXT"] or os.environ["N_TITLE"]})
+q = lambda v: json.dumps(v)  # ASCII only: the same escapes as curl'"'"'s config
+print("url = " + q(base + "/"))
+print("header = " + q("Content-Type: application/json"))
+if os.environ["N_TOKEN"]:
+    print("header = " + q("Authorization: Bearer " + os.environ["N_TOKEN"]))
+print("data-binary = " + q(body))
+' | curl -sS -m 10 -K - 2>&1) || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    why="curl exit $rc"
+    return 1
+  fi
+  case $answer in
+    *'"event":"message"'*) return 0 ;;
+  esac
+  why="ntfy refused: $(printf '%s' "$answer" | head -c 150)"
   return 1
 }
 

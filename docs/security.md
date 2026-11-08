@@ -125,8 +125,11 @@ These are decisions, not oversights. Weigh them for your own setup.
   release before you check it out.
 - **The off-site server.** It sees only encrypted data. Who controls it can
   delete it, so the USB copy matters.
-- **Telegram.** Notifications pass through Telegram's servers. They contain
-  host names and service states, no secrets.
+- **Telegram or ntfy.** Notifications pass through their servers. They
+  contain host names and service states, no secrets. On the public ntfy.sh
+  the topic name is the only lock: anyone who knows it can read along, so
+  install.sh suggests a random one. Your own ntfy server with an access
+  token avoids that.
 - **A household device that uses DNS over HTTPS** bypasses Pi-hole. That is
   a matter of blocking, not of security.
 - **Availability.** One Pi is one Pi. Decolab tells you quickly when

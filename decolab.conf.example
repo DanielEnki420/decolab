@@ -97,4 +97,6 @@ RESTIC_REPOSITORY=
 # --- Notifications -----------------------------------------------------------
 
 # telegram = bot token and chat id are asked for by install.sh (kept in SECRETS_DIR)
+# ntfy     = topic URL (https://ntfy.sh/TOPIC or your own server) and an optional
+#            access token are asked for by install.sh (kept in SECRETS_DIR)
 NOTIFY=none

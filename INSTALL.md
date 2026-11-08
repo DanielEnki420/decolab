@@ -132,7 +132,7 @@ The keys you must look at:
 | `TAILSCALE`, `TAILNET_NAME` | the part before `.ts.net` of your tailnet |
 | `MODULE_*` | Immich, Vaultwarden, Uptime Kuma: yes or no |
 | `BACKUP_DIR`, `USB_BACKUP_DIR`, `RESTIC_REPOSITORY` | where the copies go |
-| `NOTIFY` | `telegram` or `none` |
+| `NOTIFY` | `telegram`, `ntfy` or `none` |
 
 The file holds no secrets. The check is strict on purpose: one `KEY=VALUE`
 per line, no quotes, no `$`. Shell, systemd and Docker Compose must all read
@@ -155,7 +155,9 @@ again until nothing is blocked.
 ```
 
 It asks for sudo once (for the files under `/etc`). With `NOTIFY=telegram`
-it asks for the bot token and chat id and sends a test message. Then it
+it asks for the bot token and chat id, with `NOTIFY=ntfy` for the topic URL
+(it suggests a random topic on ntfy.sh; subscribe to it in the ntfy app) and
+an optional access token. Either way it sends a test message. Then it
 generates the secrets into `SECRETS_DIR` and puts the host files in place.
 It starts the stacks, and last the schedules and the watchdog. Running it
 again changes nothing that is in order.
@@ -264,7 +266,7 @@ readable from any computer) and reboot.
 
 ## 9. Check that it works
 
-- The morning report (06:15, with `NOTIFY=telegram`) lists the night's
+- The morning report (06:15, with `NOTIFY` set) lists the night's
   backup, the restore probes and anything that is not in order.
 - Uptime Kuma shows every push monitor green after its first run. The restore
   probes run between 05:50 and 06:05, so their monitors turn green the next

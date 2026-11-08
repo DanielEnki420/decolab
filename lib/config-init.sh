@@ -293,7 +293,7 @@ decolab_config_init() { # [--defaults] FILE
   _ini_ask RESTIC_REPOSITORY restic "" "Off-site copy, restic repository (or - for none)" optional || return 1
 
   _ini_section Notifications
-  _ini_ask NOTIFY notify none "Notifications: telegram or none (install.sh asks for the bot token)" || return 1
+  _ini_ask NOTIFY notify none "Notifications: telegram, ntfy or none (install.sh asks for the details)" || return 1
 
   # The draft lives in a private directory, never next to the target: a name
   # others can guess there could be a planted link (root follows it under sudo).

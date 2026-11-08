@@ -14,7 +14,7 @@ steps.
 | Off-site, 04:10 | `RESTIC_REPOSITORY` (restic, encrypted) | the newest local backup, the photo originals, the Samba share | 7 daily, 4 weekly, 6 monthly |
 
 `config.tar.gz` holds `decolab.conf` and every secret: database passwords,
-the panel token, the restic password, the Telegram and Kuma tokens. It is
+the panel token, the restic password, the Telegram or ntfy and Kuma tokens. It is
 the key to everything else.
 
 **The one thing that is not in any backup on its own:** the restic password.

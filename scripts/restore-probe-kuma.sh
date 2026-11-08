@@ -9,7 +9,7 @@
 # Checks in the newest backup, before anything starts:
 #   - kuma.db is intact and has monitors (no drop to less than half)
 #   - EVERY token in SECRETS_DIR/kuma-push.env is a push monitor in it
-#   - with NOTIFY=telegram: there is a notification, and no active monitor
+#   - with NOTIFY set (not none): there is a notification, and no active monitor
 #     is without one (a monitor that turns red and reaches nobody)
 #
 # The danger of starting it: a second Kuma would at once poll every monitor
@@ -65,7 +65,7 @@ print(" ".join(k for k, t in (l.split() for l in sys.stdin) if t not in have))' 
 tokens=$(printf '%s\n' "$keys" | wc -l | tr -d ' ')
 probe_ok                                                                    # 4
 
-if [ "$NOTIFY" = telegram ]; then
+if [ "$NOTIFY" != none ]; then
   n=$(probe_sql "$db" "SELECT count(*) FROM notification")
   [ "${n:-0}" -ge 1 ] || probe_fail "the backup holds no notification: Kuma could alert nobody"
   silent=$(probe_sql "$db" "SELECT count(*) FROM monitor m WHERE m.active = 1 AND NOT EXISTS

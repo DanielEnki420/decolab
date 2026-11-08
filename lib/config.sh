@@ -194,8 +194,8 @@ _cfg_check_type() { # LINE KEY TYPE VALUE
         *) _cfg_error "$line" "$key" "'$v' is not a tailnet name like tail1234" ;;
       esac ;;
     notify)
-      case $v in telegram | none) return 0 ;; esac
-      _cfg_error "$line" "$key" "'$v' must be telegram or none" ;;
+      case $v in telegram | ntfy | none) return 0 ;; esac
+      _cfg_error "$line" "$key" "'$v' must be telegram, ntfy or none" ;;
     restic)
       case $v in
         /*) _cfg_check_type "$line" "$key" abspath "$v" && return 0 ;;

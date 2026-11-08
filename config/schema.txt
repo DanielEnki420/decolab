@@ -15,7 +15,7 @@
 #   auto     auto | yes | no
 #   days     whole number 1-365
 #   tailnet  Tailscale tailnet name (the part before .ts.net)
-#   notify   telegram | none
+#   notify   telegram | ntfy | none
 #   restic   restic repository (absolute path or sftp:, rest:, s3:, b2:, azure:, gs:, swift:, rclone:)
 #
 # The file is read by bin/decolab-config and lib/config.sh.

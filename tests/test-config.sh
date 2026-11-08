@@ -93,7 +93,8 @@ check "days 0" 1 "number of days" -- "$cfg" check "$(conf d0 BACKUP_KEEP_DAYS=0)
 check "days 400" 1 "number of days" -- "$cfg" check "$(conf d4 BACKUP_KEEP_DAYS=400)"
 check "yes/no only" 1 "must be yes or no" -- "$cfg" check "$(conf yn HARDENING=true)"
 check "auto/yes/no only" 1 "must be auto, yes or no" -- "$cfg" check "$(conf au HW_FAN=maybe)"
-check "notify choice" 1 "must be telegram or none" -- "$cfg" check "$(conf nt NOTIFY=email)"
+check "notify choice" 1 "must be telegram, ntfy or none" -- "$cfg" check "$(conf nt NOTIFY=email)"
+check "notify ntfy" 0 "" -- "$cfg" check "$(conf nt2 NOTIFY=ntfy)"
 check "tailnet with .ts.net" 1 "part before .ts.net" -- "$cfg" check "$(conf tsn TAILSCALE=yes TAILNET_NAME=tail1234.ts.net)"
 check "bad restic target" 1 "not a restic repository" -- "$cfg" check "$(conf rb RESTIC_REPOSITORY=ftp:host)"
 

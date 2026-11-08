@@ -161,7 +161,23 @@ check "  no SSH drop-in from install.sh" 1 "" -- sh -c "ls '$B/root/etc/ssh/sshd
 check "  no rules loaded by install.sh" 1 "" -- grep -q "^nft" "$t_tmp/host.log"
 box tg 's/^NOTIFY=.*/NOTIFY=telegram/'
 check "Telegram without a terminal: say how" 1 "telegram.env missing: create it" -- inst --fresh
-check "  the dry run would ask" 0 "the bot token and chat id are asked for" -- inst --dry-run --fresh
+check "  the dry run would ask" 0 "telegram.env: the notification details are asked for" -- inst --dry-run --fresh
+box ntfy 's/^NOTIFY=.*/NOTIFY=ntfy/'
+check "ntfy without a terminal: say how" 1 "ntfy.env missing: create it (NTFY_URL=" -- inst --fresh
+check "  the dry run would ask" 0 "ntfy.env: the notification details are asked for" -- inst --dry-run --fresh
+export FAKE_CURL_LOG=$t_tmp/ntfy-curl.log
+: >"$FAKE_CURL_LOG"
+FAKE_CURL_REPLY='{"id":"a","event":"message"}' check "ntfy, Enter for both questions: done" 0 "ntfy test message sent" -- sh -c 'printf "\n\n" | INSTALL_ASK=always "$1/install.sh" --fresh' _ "$t_root"
+check "  a random topic on ntfy.sh" 0 "" -- grep -E "^NTFY_URL=https://ntfy\.sh/decolab-[A-Za-z0-9]{24}$" "$B/secrets/ntfy.env"
+check "  no token line without a token" 1 "" -- grep NTFY_TOKEN "$B/secrets/ntfy.env"
+check "  the file is private" 0 "" -- sh -c "find '$B/secrets/ntfy.env' -perm 600 | grep ."
+check "  the test message went to ntfy.sh" 0 "" -- grep -x 'STDIN:url = "https://ntfy.sh/"' "$FAKE_CURL_LOG"
+box ntfy2 's/^NOTIFY=.*/NOTIFY=ntfy/'
+FAKE_CURL_REPLY='{"id":"a","event":"message"}' check "ntfy, own server and token" 0 "ntfy test message sent" -- sh -c 'printf "https://push.example/alerts\ntk_abc123\n" | INSTALL_ASK=always "$1/install.sh" --fresh' _ "$t_root"
+check "  both kept" 0 "" -- sh -c "grep -x 'NTFY_URL=https://push.example/alerts' '$B/secrets/ntfy.env' && grep -x 'NTFY_TOKEN=tk_abc123' '$B/secrets/ntfy.env'"
+box ntfy3 's/^NOTIFY=.*/NOTIFY=ntfy/'
+check "ntfy, an URL without a topic: stop" 1 "no topic URL" -- sh -c 'printf "https://push.example\n\n" | INSTALL_ASK=always "$1/install.sh" --fresh' _ "$t_root"
+check "  ... and no file" 1 "" -- test -e "$B/secrets/ntfy.env"
 box pg
 mkdir -p "$B/data/immich/postgres" && : >"$B/data/immich/postgres/PG_VERSION"
 check "a database without its password: stop" 1 "would not open it" -- inst --fresh

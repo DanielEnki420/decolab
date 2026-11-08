@@ -99,6 +99,7 @@ sudo=${INSTALL_SUDO-sudo}
 ask=1
 [ -t 0 ] || ask=0
 [ "${INSTALL_ASK:-1}" != 0 ] || ask=0
+[ "${INSTALL_ASK:-}" != always ] || ask=1 # tests: answers from a pipe
 me=$(id -un)
 work=$(mktemp -d "${TMPDIR:-/tmp}/decolab-install.XXXXXX") || exit 1
 trap 'rm -rf "$work"' EXIT
@@ -398,6 +399,7 @@ secret_list() {
   case " $hw_list " in *" HW_UPS "*) echo "nut.env free" ;; esac
   [ -z "$RESTIC_REPOSITORY" ] || echo "restic-password tied"
   [ "$NOTIFY" != telegram ] || echo "telegram.env asked"
+  [ "$NOTIFY" != ntfy ] || echo "ntfy.env asked"
   return 0
 }
 section "Secrets in $SECRETS_DIR"
@@ -410,10 +412,13 @@ while read -r name kind; do
     if perm_is "$f" 600; then item ok "$name"; else item fix "$name: mode is not 600"; fi
   elif [ "$kind" = asked ]; then
     if [ "$ask" = 1 ] || [ "$dry" = 1 ]; then
-      item ask "$name: the bot token and chat id are asked for"
+      item ask "$name: the notification details are asked for"
       gen_secrets="$gen_secrets $name"
     else
-      block "$name missing: create it (TELEGRAM_BOT_TOKEN=..., TELEGRAM_CHAT_ID=..., mode 600) or run install.sh in a terminal"
+      case $name in
+        ntfy.env) block "$name missing: create it (NTFY_URL=https://ntfy.sh/TOPIC, optional NTFY_TOKEN=..., mode 600) or run install.sh in a terminal" ;;
+        *) block "$name missing: create it (TELEGRAM_BOT_TOKEN=..., TELEGRAM_CHAT_ID=..., mode 600) or run install.sh in a terminal" ;;
+      esac
     fi
   elif [ "$mode" = restore ] && [ "$kind" = tied ]; then
     block "$name missing: restore $SECRETS_DIR from the backup first (RESTORE.md); a new one would not open the restored data"
@@ -490,6 +495,19 @@ make_secret() {
       [[ $bot =~ ^[0-9]+:[A-Za-z0-9_-]+$ ]] || { warn "that is no bot token" && return 1; }
       [[ $chat =~ ^-?[0-9]+$ ]] || { warn "that is no chat id" && return 1; }
       printf 'TELEGRAM_BOT_TOKEN=%s\nTELEGRAM_CHAT_ID=%s\n' "$bot" "$chat" | put_secret "$1" ;;
+    ntfy.env)
+      # A random topic: on a public server the topic is the only lock.
+      local url tok suggest
+      suggest="https://ntfy.sh/decolab-$(alnum 24)"
+      printf '  ntfy topic URL [%s]: ' "$suggest"
+      IFS= read -r url
+      url=${url:-$suggest}
+      printf '  ntfy access token (Enter for none, not shown): '
+      IFS= read -rs tok && echo
+      [[ $url =~ ^https?://[A-Za-z0-9.:-]+(/[A-Za-z0-9._-]+)*/[A-Za-z0-9_-]{1,64}$ ]] || { warn "that is no topic URL like https://ntfy.sh/TOPIC" && return 1; }
+      [ -z "$tok" ] || [[ $tok =~ ^[A-Za-z0-9._-]+$ ]] || { warn "that is no access token" && return 1; }
+      { printf 'NTFY_URL=%s\n' "$url" && { [ -z "$tok" ] || printf 'NTFY_TOKEN=%s\n' "$tok"; }; } | put_secret "$1"
+      echo "  Subscribe to $url in the ntfy app to get the messages." ;;
   esac
 }
 
@@ -512,11 +530,11 @@ if [ "$dry" = 0 ]; then
   if [ "$(cat "$SECRETS_DIR/runtime.env" 2>/dev/null)" != "$runtime" ]; then
     printf '%s\n' "$runtime" | put_secret runtime.env && changed=$((changed + 1))
   fi
-  case " $gen_secrets " in *" telegram.env "*)
+  case " $gen_secrets " in *" telegram.env "* | *" ntfy.env "*)
     if notify "✅ Decolab" "install.sh on $(hostname -s 2>/dev/null): notifications work."; then
-      item ok "Telegram test message sent: check your phone"
+      item ok "$NOTIFY test message sent: check your phone"
     else
-      todo "the Telegram test message failed: check $SECRETS_DIR/telegram.env (see $DECOLAB_LOG_DIR/notify-errors.log)"
+      todo "the $NOTIFY test message failed: check $SECRETS_DIR/$NOTIFY.env (see $DECOLAB_LOG_DIR/notify-errors.log)"
     fi ;;
   esac
 fi

@@ -41,6 +41,39 @@ container is up. Defaults are hardened. The dashboard has an Art Deco look.
 The software above is pulled as container images from each publisher. Decolab
 does not ship it and is not affiliated with any of these projects (see [NOTICE](NOTICE)).
 
+## Setup in short
+
+`bin/decolab-config init` writes the configuration. It finds what it can and
+asks for the rest; Enter accepts the suggestion. Then `install.sh` does the rest
+([INSTALL.md](INSTALL.md) has every step).
+
+```text
+$ bin/decolab-config init
+Decolab setup: Enter accepts the suggestion in [brackets].
+
+== Network ==
+LAN network interface [eth0]:
+Fixed LAN address of this Pi [192.0.2.15]:
+LAN network [192.0.2.0/24]:
+SSH port [22]:
+
+== Remote access ==
+Use Tailscale for the web interfaces (HTTPS) [yes]:
+Tailnet name (the part before .ts.net) [tail1234]:
+
+== Modules ==
+Immich (photos) [yes]:
+Vaultwarden (passwords; needs Tailscale) [yes]: no
+...
+Wrote /opt/decolab/decolab.conf (29 settings).
+Before you install:
+  - 192.0.2.15 came from DHCP: reserve it for this Pi in your router.
+Next: read it once, then run ./install.sh --dry-run --fresh
+```
+
+*Shortened; made-up addresses. Every answer is checked at once, the whole file
+again before it is written.*
+
 ## Documentation
 
 | | |

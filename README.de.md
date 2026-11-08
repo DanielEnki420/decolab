@@ -33,8 +33,11 @@ Watchtower, Samba-NAS, wahlweise Immich und Vaultwarden, dazu Lüfter, OLED, NVM
 und USV für den Pi 5.
 
 **Konfiguration:** eine einfache Datei im Format `SCHLÜSSEL=WERT`
-([decolab.conf.example](decolab.conf.example)). Sie wird vor der Verwendung
-geprüft und nie ausgeführt. Geheimnisse entstehen erst bei der Installation und
+([decolab.conf.example](decolab.conf.example)). Am einfachsten schreibt sie
+`bin/decolab-config init`: Der Assistent erkennt Netz, Adresse, Zeitzone und
+Tailnet selbst und fragt nur den Rest, Enter übernimmt den Vorschlag (ein
+Beispiel steht im [englischen README](README.md#setup-in-short)). Die Datei wird
+vor der Verwendung geprüft und nie ausgeführt. Geheimnisse entstehen erst bei der Installation und
 liegen außerhalb des Repos.
 
 **Anleitungen** (englisch): [Installation](INSTALL.md),

@@ -142,10 +142,10 @@ detect() {
   case $v in yes) return 0 ;; no) return 1 ;; esac
   case $1 in
     HW_FAN) grep -qx pwmfan /sys/class/hwmon/hwmon*/name 2>/dev/null ;;
-    HW_OLED) [ -e /dev/i2c-1 ] && i2cdetect -y 1 0x3c 0x3c 2>/dev/null | grep -q ' 3c' ;;
+    HW_OLED) [ -e /dev/i2c-1 ] && i2cdetect -y 1 0x3c 0x3c 2>/dev/null | grep ' 3c' >/dev/null ;;
     HW_NVME) [ -b /dev/nvme0n1 ] ;;
     # Eaton/MGE, APC, CyberPower, Tripp Lite, Phoenixtec: USB HID UPSes
-    HW_UPS) lsusb 2>/dev/null | grep -qiE 'ID (0463|051d|0764|09ae|06da):' ;;
+    HW_UPS) lsusb 2>/dev/null | grep -iE 'ID (0463|051d|0764|09ae|06da):' >/dev/null ;;
     *) return 1 ;;
   esac
 }
@@ -274,8 +274,8 @@ else
   dgid=$(getent group docker 2>/dev/null | cut -d: -f3)
   if [ -z "$dgid" ]; then
     block "there is no docker group: is Docker installed completely?"
-  elif ! id -G | tr ' ' '\n' | grep -qx "$dgid"; then
-    if getent group docker | cut -d: -f4 | tr ',' '\n' | grep -qx "$me"; then
+  elif ! id -G | tr ' ' '\n' | grep -x "$dgid" >/dev/null; then
+    if getent group docker | cut -d: -f4 | tr ',' '\n' | grep -x "$me" >/dev/null; then
       block "$me is in the docker group, but this session started before: log out and in again"
     else
       block "$me is not in the docker group:  sudo usermod -aG docker $me  then log out and in again"

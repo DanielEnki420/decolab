@@ -45,6 +45,9 @@ plant "a shell bug" scripts/planted.sh '#!/usr/bin/env bash
 echo $undefined_on_purpose $1' shellcheck
 plant "a shell bug without .sh" bin/planted '#!/usr/bin/env bash
 rm -rf $1/*' shellcheck
+plant "grep -q after a pipe" scripts/planted-grep.sh '#!/usr/bin/env bash
+set -uo pipefail
+ip -o addr show | grep -q inet || exit 1' grep-q
 plant "a Python syntax error" lib/planted.py 'def broken(:
     pass' python
 ip="192.168"

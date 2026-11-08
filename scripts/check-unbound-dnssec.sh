@@ -21,7 +21,7 @@ good=$(timeout 30 docker exec unbound drill -D -p 5335 cloudflare.com @127.0.0.1
 bad=$(timeout 30 docker exec unbound drill -D -p 5335 dnssec-failed.org @127.0.0.1 2>&1)
 
 detail=""
-printf '%s\n' "$good" | grep -qE '^;; flags:.* ad[ ;]' || detail="ad flag missing for a validly signed domain"
-printf '%s\n' "$bad" | grep -q 'rcode: SERVFAIL' || detail="${detail:+$detail; }a broken signature was NOT rejected"
+printf '%s\n' "$good" | grep -E '^;; flags:.* ad[ ;]' >/dev/null || detail="ad flag missing for a validly signed domain"
+printf '%s\n' "$bad" | grep 'rcode: SERVFAIL' >/dev/null || detail="${detail:+$detail; }a broken signature was NOT rejected"
 [ -z "$detail" ] || check_fail "DNSSEC validation broken: $detail"
 check_ok "DNSSEC validates (ad flag set, broken signature -> SERVFAIL)"

@@ -41,7 +41,7 @@ blocking_test() (
       # NX blocking mode answers "no such domain". An empty answer alone is
       # not enough: a dead resolver (SERVFAIL, timeout) gives one too, so
       # NXDOMAIN must be in the header. These domains exist in real DNS.
-      ask "$d" +noall +comments | grep -q 'status: NXDOMAIN' && blocked=$((blocked + 1))
+      ask "$d" +noall +comments | grep 'status: NXDOMAIN' >/dev/null && blocked=$((blocked + 1))
     fi
   done
   normal=$(ask "$normal_domain" +short | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)

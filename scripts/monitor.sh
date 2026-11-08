@@ -69,7 +69,7 @@ if is_yes HARDENING; then
     table=$(sudo -n nft list table inet decolab 2>/dev/null)
     if [ -z "$table" ]; then
       add "firewall: table inet decolab missing or unreadable: container ports may be open"
-    elif ! printf '%s\n' "$table" | grep -qE 'hook input priority .*policy drop' ||
+    elif ! printf '%s\n' "$table" | grep -E 'hook input priority .*policy drop' >/dev/null ||
       ! printf '%s\n' "$table" | awk '/chain forward/ { f = 1 } f && /^[[:space:]]*}/ { exit } f { last = $0 } END { exit last !~ /^[[:space:]]*drop$/ }'; then
       add "firewall: table inet decolab is incomplete (input policy or final drop missing)"
     fi

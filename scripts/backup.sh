@@ -70,7 +70,7 @@ fi
 
 # GNU tar ends with 1 when a file changed while it was read (live data):
 # a warning. 2 is fatal. Other tars (macOS, tests) have only 1 for errors.
-if tar --version 2>/dev/null | grep -q 'GNU tar'; then gnu_tar=1; else gnu_tar=0; fi
+if tar --version 2>/dev/null | grep 'GNU tar' >/dev/null; then gnu_tar=1; else gnu_tar=0; fi
 tar_ok() { [ "$1" -eq 0 ] || { [ "$gnu_tar" = 1 ] && [ "$1" -eq 1 ]; }; }
 
 for old in "$BACKUP_DIR"/.partial-*; do

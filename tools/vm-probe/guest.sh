@@ -66,7 +66,7 @@ kernel)
 
 # --- INSTALL.md 2: system, packages, Docker, data disk; plus the probe's stubs
 prepare)
-  uname -r | grep -q cloud && fail "still the cloud kernel: $(uname -r)" || ok "kernel $(uname -r)"
+  uname -r | grep cloud >/dev/null && fail "still the cloud kernel: $(uname -r)" || ok "kernel $(uname -r)"
   sudo DEBIAN_FRONTEND=noninteractive apt-get -y -q purge 'linux-image-*cloud*' >/dev/null 2>&1
   say "system update"
   sudo apt-get update -q && sudo apt-get -y -q full-upgrade >/dev/null || fail "apt full-upgrade"
@@ -79,7 +79,7 @@ prepare)
   expect "apt install (INSTALL.md list)" sudo apt-get -y -q install $base $extra $probe >/dev/null
   # Are the packages INSTALL.md names but this configuration skips in Debian?
   for p in librespeed-cli python3-luma.oled nut-client nut-server; do
-    if apt-cache policy "$p" 2>/dev/null | sed -n 's/^ *Candidate: //p' | grep -qv none; then
+    if apt-cache policy "$p" 2>/dev/null | sed -n 's/^ *Candidate: //p' | grep -v none >/dev/null; then
       ok "Debian has $p"
     else
       say "NOTE: Debian 13 has no package $p"
@@ -96,8 +96,8 @@ prepare)
   say "Docker's address pool (INSTALL.md, step 2)"
   printf '{"default-address-pools": [{"base": "10.210.0.0/16", "size": 24}], "features": {"containerd-snapshotter": false}}\n' | sudo tee /etc/docker/daemon.json >/dev/null
   sudo systemctl restart docker
-  sudo docker info --format '{{json .DefaultAddressPools}}' | grep -q '"10.210.0.0/16"' && ok "Docker numbers from 10.210.0.0/16" || fail "Docker address pool"
-  sudo docker info --format '{{.Driver}}' | grep -qx overlay2 && ok "Docker's classic store (overlay2)" || fail "Docker storage: $(sudo docker info --format '{{.Driver}}')"
+  sudo docker info --format '{{json .DefaultAddressPools}}' | grep '"10.210.0.0/16"' >/dev/null && ok "Docker numbers from 10.210.0.0/16" || fail "Docker address pool"
+  sudo docker info --format '{{.Driver}}' | grep -x overlay2 >/dev/null && ok "Docker's classic store (overlay2)" || fail "Docker storage: $(sudo docker info --format '{{.Driver}}')"
   # For tools/check.sh: the shellcheck CI pins (Debian's 0.10 reports
   # what 0.11 fixed)
   if ! command -v shellcheck >/dev/null; then
@@ -128,7 +128,7 @@ prepare)
   sudo install -m 755 ~/probe/tailscale-stub /usr/local/bin/tailscale
   say "data disk: the system disk is NVMe here"
   sudo mkdir -p /mnt/data && sudo chown pi: /mnt/data
-  findmnt -no SOURCE / | grep -q nvme && ok "/ is on NVMe" || fail "/ is not on NVMe"
+  findmnt -no SOURCE / | grep nvme >/dev/null && ok "/ is on NVMe" || fail "/ is not on NVMe"
   say "USB disk"
   usb=$(lsblk -dnpo NAME,TRAN | awk '$2 == "usb" { print $1; exit }')
   if [ -z "$usb" ]; then
@@ -211,7 +211,7 @@ seed)
 
   say "Uptime Kuma: no database setup page (the compose file sets SQLite), then the push monitors (INSTALL.md 6.3)"
   wait_for 180 "Kuma answers" curl -fs http://127.0.0.1:3001/setup-database-info
-  curl -fs http://127.0.0.1:3001/setup-database-info | grep -q '"needSetup":false' &&
+  curl -fs http://127.0.0.1:3001/setup-database-info | grep '"needSetup":false' >/dev/null &&
     ok "Kuma needs no database setup" || fail "Kuma asks for a database setup"
   wait_for 240 "kuma.db" test -s /mnt/data/uptime-kuma/kuma.db
   wait_for 240 "Kuma back up" curl -fs http://127.0.0.1:3001/api/entry-page
@@ -235,7 +235,7 @@ seed)
   wait_for 240 "Kuma back up" curl -fs http://127.0.0.1:3001/api/entry-page
   n=$(sqlite3 "file:/mnt/data/uptime-kuma/kuma.db?mode=ro" "SELECT count(*) FROM monitor WHERE type='push'")
   [ "${n:-0}" -ge 1 ] && ok "Kuma: $n push monitors" || fail "Kuma: no push monitor"
-  ./install.sh </dev/null | grep -q "Uptime Kuma: create a push monitor" && fail "install.sh still asks for push monitors" || ok "install.sh is content with kuma-push.env"
+  ./install.sh </dev/null | grep "Uptime Kuma: create a push monitor" >/dev/null && fail "install.sh still asks for push monitors" || ok "install.sh is content with kuma-push.env"
 
   say "Vaultwarden: an invited account (admin page, then the registration a client makes)"
   tok=$(cat "$S/vaultwarden-admin-token" 2>/dev/null)
@@ -363,7 +363,7 @@ after-reboot)
   say "containers after the reboot (waiting up to 5 min)"
   wait_for 300 "all containers up" sh -c '! docker ps -a --format "{{.Status}}" | grep -qE "unhealthy|Exited|Restarting|Created|starting"'
   docker ps -a --format '{{.Names}} {{.Status}}' | sort | sed 's/^/   /'
-  dig +short +time=3 @"$(cfg HOST_LAN_IP)" example.org | grep -q . && ok "Pi-hole answers on the LAN address" || fail "no DNS answer on the LAN address"
+  dig +short +time=3 @"$(cfg HOST_LAN_IP)" example.org | grep . >/dev/null && ok "Pi-hole answers on the LAN address" || fail "no DNS answer on the LAN address"
   # a container reaches the host for DNS, but not for SSH (node is in Kuma's image)
   ip=$(cfg HOST_LAN_IP)
   docker exec uptime-kuma node -e 'const r=new (require("dns").promises.Resolver)({timeout:3000,tries:1});r.setServers([process.argv[1]]);r.resolve4("example.org").then(()=>process.exit(0),()=>process.exit(1))' "$ip" &&
@@ -458,7 +458,7 @@ restore-check)
   blocked=$(sqlite3 "file:/mnt/data/pihole/gravity.db?mode=ro" "SELECT domain FROM gravity LIMIT 1 OFFSET 500")
   ans=$(dig +short +time=3 @"$ip" "$blocked" | head -1)
   case $ans in 0.0.0.0 | "") ok "Pi-hole blocks $blocked" ;; *) fail "Pi-hole does not block $blocked ($ans)" ;; esac
-  dig +short +time=3 @"$ip" example.org | grep -q . && ok "Pi-hole resolves example.org" || fail "no answer for example.org"
+  dig +short +time=3 @"$ip" example.org | grep . >/dev/null && ok "Pi-hole resolves example.org" || fail "no answer for example.org"
   kdf=$(curl -fs -H 'Content-Type: application/json' -d '{"email":"probe@example.org"}' http://127.0.0.1:8500/identity/accounts/prelogin | jq -r '.kdfIterations // .KdfIterations')
   [ "$kdf" = 600000 ] && ok "Vaultwarden knows the account (prelogin)" || fail "Vaultwarden prelogin: ${kdf:-no answer}"
   read -r email pw <~/probe/creds-from-run/immich 2>/dev/null || true

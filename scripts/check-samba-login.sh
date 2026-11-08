@@ -22,7 +22,7 @@ out=$(timeout 30 docker exec -i samba sh -c 'IFS= read -r PASSWD; export PASSWD;
   _ "$DECOLAB_USER" <"$pwfile" 2>&1)
 rc=$?
 # smbclient also returns 0 on partial success: the share must be listed.
-if [ "$rc" -eq 0 ] && printf '%s\n' "$out" | grep -qE '^[[:space:]]+NAS[[:space:]]+Disk'; then
+if [ "$rc" -eq 0 ] && printf '%s\n' "$out" | grep -E '^[[:space:]]+NAS[[:space:]]+Disk' >/dev/null; then
   check_ok "login works, share NAS visible"
 fi
 reason=$(printf '%s' "$out" | grep -oE 'NT_STATUS_[A-Z_]+' | head -1)

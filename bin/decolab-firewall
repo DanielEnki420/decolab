@@ -225,7 +225,7 @@ preflight() {
   fi
   [ -n "$(ss -ltnH "( sport = :$SSH_PORT )" 2>/dev/null)" ] ||
     problem "nothing listens on SSH_PORT $SSH_PORT: the rules would let SSH in on a port sshd does not use"
-  ip -o addr show 2>/dev/null | grep -qE "inet $HOST_LAN_IP/" ||
+  ip -o addr show 2>/dev/null | grep -E "inet $HOST_LAN_IP/" >/dev/null ||
     problem "HOST_LAN_IP $HOST_LAN_IP is on no interface of this host"
   session
   case $S_KIND in

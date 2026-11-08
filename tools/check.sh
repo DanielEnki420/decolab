@@ -25,7 +25,7 @@ shell_files() {
     case $f in
       *.template) ;; # placeholders (${...}) first, shell only once rendered
       *.sh) printf '%s\0' "$f" ;;
-      *) if head -1 "$f" 2>/dev/null | grep -qE '^#!(/usr/bin/env |/bin/)(ba)?sh( |$)'; then printf '%s\0' "$f"; fi ;;
+      *) if head -1 "$f" 2>/dev/null | grep -E '^#!(/usr/bin/env |/bin/)(ba)?sh( |$)' >/dev/null; then printf '%s\0' "$f"; fi ;;
     esac
   done
 }
@@ -34,7 +34,7 @@ python_files() {
     [ -f "$f" ] || continue
     case $f in
       *.py) printf '%s\0' "$f" ;;
-      *) if head -1 "$f" 2>/dev/null | grep -qE '^#!.*python'; then printf '%s\0' "$f"; fi ;;
+      *) if head -1 "$f" 2>/dev/null | grep -E '^#!.*python' >/dev/null; then printf '%s\0' "$f"; fi ;;
     esac
   done
 }
@@ -44,6 +44,17 @@ lint() {
   step "shellcheck"
   n=$(shell_files | tr -cd '\0' | wc -c | tr -d ' ')
   if shell_files | xargs -0 shellcheck -x; then echo "shellcheck: $n files clean"; else fail shellcheck; fi
+
+  # "cmd | grep -q": grep stops at the first match, cmd may still write and
+  # die of SIGPIPE, and under pipefail the test fails at random (decolab-
+  # firewall, 2026-11-08). Write "grep ... >/dev/null" instead. Tests and
+  # plain-sh code (sh -c, no pipefail) are exempt.
+  step "no grep -q after a pipe"
+  local hits
+  hits=$(shell_files | tr '\0' '\n' | grep -v '^tests/' | while IFS= read -r f; do
+    grep -nE '\|[[:space:]]*grep[[:space:]]+-[A-Za-z]*q' "$f" | grep -vE '^[0-9]+:[[:space:]]*#|sh -c ' | sed "s|^|$f:|"
+  done)
+  if [ -z "$hits" ]; then echo "grep-q: none after a pipe"; else printf '%s\n' "$hits"; fail grep-q; fi
 
   step "python syntax"
   n=$(python_files | tr -cd '\0' | wc -c | tr -d ' ')

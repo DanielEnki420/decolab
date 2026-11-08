@@ -9,7 +9,7 @@ works instead of just looking healthy. Backups are restored automatically and
 checked. Monitors check that each service does its job, not only that the
 container is up. Defaults are hardened. The dashboard has an Art Deco look.
 
-> **Status: early (v0.1.0).** The project is extracted
+> **Status: early (v0.3.0).** The project is extracted
 > from a private homelab that runs in daily use. Until version 1.0,
 > expect breaking changes, and test it on a spare Pi. **arm64 only**
 > (Raspberry Pi 5).

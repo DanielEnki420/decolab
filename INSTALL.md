@@ -94,7 +94,7 @@ sudo mkdir -p /opt/decolab && sudo chown "$USER": /opt/decolab
 git clone https://github.com/OWNER/decolab.git /opt/decolab   # OWNER: see the repository page
 cd /opt/decolab
 git tag                 # the releases
-git checkout v0.1.0     # or the newest of them
+git checkout v0.3.0     # or the newest of them
 ```
 
 `/opt/decolab` must belong to you and must not be writable by anyone else:

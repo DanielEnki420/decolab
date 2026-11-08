@@ -397,6 +397,9 @@ second-run)
 # --- the contract tests on the rebuilt system ---------------------------------
 tests)
   cd "$D" || exit 1
+  # ruff and mypy as a developer gets them (README: tools/setup-dev.sh)
+  dpkg -s python3-venv >/dev/null 2>&1 || sudo apt-get -y -q install python3-venv >/dev/null
+  expect "tools/setup-dev.sh" tools/setup-dev.sh >/tmp/setup-dev.log 2>&1
   tools/check.sh all >/tmp/check-all.log 2>&1
   rc=$?
   grep -E "FAIL|passed, [1-9]|test files|all checks|FAILED" /tmp/check-all.log | sed 's/^/   /'

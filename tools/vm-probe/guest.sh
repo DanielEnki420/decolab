@@ -156,15 +156,21 @@ prepare)
   [ "$(git -C "$D" rev-parse --short HEAD)" = "$(cat ~/probe/commit)" ] && ok "checkout at $(cat ~/probe/commit)" || fail "checkout"
   end ;;
 
-# --- INSTALL.md 4: a configuration as a stranger would write it -----------
+# --- INSTALL.md 4: the configuration through the wizard, as INSTALL.md says --
 configure)
   ip4=$(ip -4 -o addr show scope global | awk '{ print $4; exit }')
   ifc=$(ip -4 -o addr show scope global | awk '{ print $2; exit }')
-  cp "$D/decolab.conf.example" "$conf"
-  sed -i -e "s|^DECOLAB_USER=.*|DECOLAB_USER=pi|" -e "s|^DECOLAB_DIR=.*|DECOLAB_DIR=$D|" \
-    -e "s|^LAN_INTERFACE=.*|LAN_INTERFACE=$ifc|" -e "s|^LAN_SUBNET=.*|LAN_SUBNET=192.0.2.0/24|" \
-    -e "s|^HOST_LAN_IP=.*|HOST_LAN_IP=${ip4%/*}|" -e "s|^TAILNET_NAME=.*|TAILNET_NAME=tailprobe|" \
-    -e "s|^HARDENING=.*|HARDENING=yes|" -e "s|^SPEEDTEST=.*|SPEEDTEST=no|" -e "s|^SSH_PASSWORDS=.*|SSH_PASSWORDS=no|" \
+  rm -f "$conf"
+  expect "decolab-config init --defaults" "$D/bin/decolab-config" init --defaults "$conf" </dev/null
+  # what the wizard must have found on its own
+  [ "$(cfg DECOLAB_USER)" = pi ] && ok "wizard: user pi" || fail "wizard: user $(cfg DECOLAB_USER)"
+  [ "$(cfg DECOLAB_DIR)" = "$D" ] && ok "wizard: directory $D" || fail "wizard: directory $(cfg DECOLAB_DIR)"
+  [ "$(cfg LAN_INTERFACE)" = "$ifc" ] && ok "wizard: interface $ifc" || fail "wizard: interface $(cfg LAN_INTERFACE)"
+  [ "$(cfg HOST_LAN_IP)" = "${ip4%/*}" ] && ok "wizard: address ${ip4%/*}" || fail "wizard: address $(cfg HOST_LAN_IP)"
+  [ "$(cfg LAN_SUBNET)" = 192.0.2.0/24 ] && ok "wizard: network 192.0.2.0/24" || fail "wizard: network $(cfg LAN_SUBNET)"
+  [ "$(cfg TAILNET_NAME)" = tailprobe ] && ok "wizard: tailnet tailprobe" || fail "wizard: tailnet $(cfg TAILNET_NAME)"
+  # then what a stranger changes by hand afterwards
+  sed -i -e "s|^HARDENING=.*|HARDENING=yes|" -e "s|^SPEEDTEST=.*|SPEEDTEST=no|" -e "s|^SSH_PASSWORDS=.*|SSH_PASSWORDS=no|" \
     -e "s|^USB_BACKUP_DIR=.*|USB_BACKUP_DIR=/mnt/usb/decolab|" \
     -e "s|^RESTIC_REPOSITORY=.*|RESTIC_REPOSITORY=/mnt/usb/restic|" "$conf"
   case ${ip4%/*} in 192.0.2.*) ok "address ${ip4%/*} in the documentation range" ;; *) fail "unexpected address $ip4" ;; esac

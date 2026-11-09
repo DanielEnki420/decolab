@@ -1,6 +1,7 @@
 # Decolab (Kurzfassung)
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/DanielEnki420/decolab/badge)](https://scorecard.dev/viewer/?uri=github.com/DanielEnki420/decolab)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16500/badge)](https://www.bestpractices.dev/projects/16500)
 
 *Esse quam videri* (Sein statt Scheinen).
 

@@ -13,7 +13,8 @@ in the LAN, in the tailnet, a login on the Pi), and the steps to reproduce.
 Decolab is a hobby project, provided as is (see the licenses). You get a first
 answer to a report within 14 days; the fix comes as time allows. There is no
 bug bounty. A fix comes as a new release, with the problem named in its
-notes once the release is out.
+notes once the release is out. Whoever reported it is credited by name in
+the advisory and the release notes, unless they ask not to be.
 
 ## Supported versions
 

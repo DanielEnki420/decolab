@@ -66,3 +66,7 @@ SECURITY.md	Enki
 .github/ISSUE_TEMPLATE/config.yml	Enki
 CONTRIBUTING.md	Daniel
 CONTRIBUTING.md	Enki
+CODE_OF_CONDUCT.md	Daniel
+CODE_OF_CONDUCT.md	Enki
+GOVERNANCE.md	Daniel
+GOVERNANCE.md	Enki

@@ -34,6 +34,17 @@ answers and reviews come when time allows.
 6. **Plain code.** Bash or Python standard library; no new runtime
    dependencies without a reason in the pull request.
 
+## Sign-off (DCO)
+
+Every commit carries a `Signed-off-by:` line with your name, added by
+`git commit -s`. With it you certify the
+[Developer Certificate of Origin 1.1](https://developercertificate.org/):
+that you wrote the change or have the right to submit it under the
+project's license. Pull requests without it are not merged.
+
+Also read the [Code of Conduct](CODE_OF_CONDUCT.md) and, for who decides
+what, [GOVERNANCE.md](GOVERNANCE.md).
+
 ## License
 
 By contributing you agree that your contribution is licensed under the same

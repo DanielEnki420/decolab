@@ -134,3 +134,48 @@ These are decisions, not oversights. Weigh them for your own setup.
   a matter of blocking, not of security.
 - **Availability.** One Pi is one Pi. Decolab tells you quickly when
   something is down; it does not keep it up.
+
+## Why we believe it holds (assurance case)
+
+**Claim:** with the defaults and `HARDENING=yes`, a device in the LAN or on
+the internet cannot read or change the household's data through Decolab,
+and a lost or broken Pi does not lose it.
+
+**Trust boundaries:** the internet (no open port), the LAN (DNS, Samba and
+SSH only, allow list), the tailnet (trusted, limited by Tailscale's access
+rules), the Docker socket (only through read-limited proxies), the
+repository (signed release tags), and root on the Pi (trusted).
+
+**Design principles applied:**
+
+- *Least privilege:* containers drop capabilities and run as non-root where
+  the image allows; the Docker API is reached only through socket proxies
+  that allow the calls each consumer needs; host services are sandboxed by
+  systemd.
+- *Fail safe defaults:* web interfaces listen on 127.0.0.1 unless you
+  choose otherwise; the firewall is an allow list and needs a confirmation,
+  or it rolls back by itself.
+- *Complete mediation:* the panel checks its signed session cookie (HMAC,
+  with expiry) on every request.
+- *Economy of mechanism:* Bash and the Python standard library, no build
+  step, no own cryptography.
+- *Input validation:* `decolab.conf` is parsed as data and every key is
+  checked against `config/schema.txt` (type, allowed values) before use;
+  templates replace only declared variables; the panel accepts only fixed
+  paths and methods.
+
+**Common weaknesses and what counters them:**
+
+| Weakness | Counter |
+|---|---|
+| Command injection through configuration | config read as data, never `source`d; values validated |
+| Secrets in process lists or logs | secrets go through stdin or files, never argv; tests check it |
+| Secrets in the repository | `tools/guard.sh` and gitleaks on every commit, push and CI run |
+| Session forgery on the panel | HMAC-SHA256 cookie, server-side expiry, Secure on HTTPS |
+| Unexpected images | every image pinned by digest |
+| Unsigned code reaching root | only signed release tags are checked out |
+
+**Evidence:** the contract tests in `tests/` (including these points),
+static analysis (CodeQL, shellcheck, ruff, mypy) on every push, and before
+each release a full installation in a fresh virtual machine
+(`tools/vm-probe/`), including the firewall trial and a reboot.

@@ -86,6 +86,8 @@ again before it is written.*
 | [docs/panel.md](docs/panel.md) | the read-only dashboard and its API |
 | [docs/metrics.md](docs/metrics.md) | Decolab's own Prometheus metrics |
 | [SECURITY.md](SECURITY.md) | reporting a vulnerability |
+| [docs/architecture.md](docs/architecture.md) | how the pieces fit together |
+| [CONTRIBUTING.md](CONTRIBUTING.md) · [GOVERNANCE.md](GOVERNANCE.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | working on Decolab |
 
 ## Principles
 
@@ -107,7 +109,15 @@ standard library and the dashboard is hand-written HTML, CSS and JavaScript
 without a build step. A release is therefore nothing but signed source code:
 no compiler, no package downloads, nothing that is not in the tag.
 
-Planned next: stricter static checks for the Python code in CI.
+Planned for the next year, in this order:
+
+1. `decolab update` with an automatic way back if the services do not come
+   up healthy after an update.
+2. Support for the Raspberry Pi 4.
+3. Notifications by e-mail, next to Telegram and ntfy.
+
+Not planned: a web installer, more services by default, or anything that
+needs a port open to the internet.
 
 ## Development
 

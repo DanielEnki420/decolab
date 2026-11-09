@@ -188,7 +188,9 @@ noreply_out() { grep -vE '^[^<>]* <[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\
 scan_text() { # LABEL FILE
   local dir
   dir=$(mktemp -d "$tmp/text.XXXXXX")
-  cp "$2" "$dir/content"
+  # A DCO sign-off under the GitHub noreply identity names the account that
+  # publishes the commit anyway (as for authors above): exempt that line only.
+  grep -vE '^Signed-off-by: [^<>]* <[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com>$' "$2" > "$dir/content" || true
   (cd "$dir" && scan "$1" --no-index -- content)
 }
 

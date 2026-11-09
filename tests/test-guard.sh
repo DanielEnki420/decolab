@@ -112,6 +112,17 @@ git -C "$repo2" checkout -q -
 printf 'note %s\n' "$tailnet" > "$t_tmp/msg.txt"
 check "text mode" 1 "tailnet-ipv4" -- guard --text "$t_tmp/msg.txt"
 
+echo "DCO sign-off"
+nr="1234+zebrafink@"; nr="${nr}users.noreply.github.com"
+printf 'change\n\nSigned-off-by: Zebrafink <%s>\n' "$nr" > "$t_tmp/msg.txt"
+check "sign-off with a noreply identity passes" 0 "clean (--text)" -- guard --text "$t_tmp/msg.txt"
+printf 'change by zebrafink\n\nSigned-off-by: Zebrafink <%s>\n' "$nr" > "$t_tmp/msg.txt"
+check "the name elsewhere in the message is still found" 1 "personal-word" -- guard --text "$t_tmp/msg.txt"
+printf 'change\n\nSigned-off-by: Zebrafink <%s>\n' "$mail" > "$t_tmp/msg.txt"
+check "sign-off with another address is found" 1 "personal-word" -- guard --text "$t_tmp/msg.txt"
+printf 'change\n\nSigned-off-by: Zebrafink <%s> %s\n' "$nr" "$priv" > "$t_tmp/msg.txt"
+check "nothing may follow the identity" 1 "private-ipv4" -- guard --text "$t_tmp/msg.txt"
+
 echo "tool errors are not a clean result"
 check "outside a repository" 2 "not inside a git repository" -- bash -c 'cd "$1" && "$2"/tools/guard.sh --tree' _ "$t_tmp" "$t_root"
 check "unknown option" 2 "" -- guard --everything

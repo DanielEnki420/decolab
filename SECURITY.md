@@ -10,8 +10,8 @@ vulnerability*
 Helpful in a report: the Decolab release, what an attacker needs (a device
 in the LAN, in the tailnet, a login on the Pi), and the steps to reproduce.
 
-Decolab is a hobby project, provided as is (see the licenses). Reports are
-read and fixed as time allows; there is no guaranteed response time and no
+Decolab is a hobby project, provided as is (see the licenses). You get a first
+answer to a report within 14 days; the fix comes as time allows. There is no
 bug bounty. A fix comes as a new release, with the problem named in its
 notes once the release is out.
 

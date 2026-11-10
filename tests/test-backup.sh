@@ -268,7 +268,9 @@ check "a good run: up" 0 "OK: snapshot of $now_stamp" -- off_run
 same "  Kuma got up" "$(kuma OFFSITE | cut -d' ' -f1)" "up"
 check "  the consistent local backup, photos and share" 0 "" -- grep -x -- "backup --tag decolab --exclude-caches $backups/$now_stamp $data/immich/library/upload $data/immich/library/profile $data/nas" "$FAKE_RESTIC_LOG"
 check "  never a live database directory" 1 "" -- grep -E "^backup .*($data/pihole|$data/vaultwarden|$data/uptime-kuma|immich/postgres|thumbs)" "$FAKE_RESTIC_LOG"
-check "  retention" 0 "" -- grep -x -- "forget --tag decolab --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune" "$FAKE_RESTIC_LOG"
+# --group-by host,tags: restic groups by host,paths by default, so a changed
+# folder list starts a new group and the old one never expires
+check "  retention, grouped by host and tag (not by folder list)" 0 "" -- grep -x -- "forget --tag decolab --group-by host,tags --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune" "$FAKE_RESTIC_LOG"
 : >"$FAKE_RESTIC_LOG"
 check "two failed attempts, the third works: up" 0 "attempt 3 of 3" -- off_run BACKUP_FAILS=2
 : >"$FAKE_RESTIC_LOG"

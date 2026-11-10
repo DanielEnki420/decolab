@@ -81,7 +81,10 @@ while [ "$try" -le "$attempts" ]; do
 done
 [ "$rc" -eq 0 ] || fail "restic backup failed $attempts times (rc=$rc)"
 
-"$restic" forget --tag "$tag" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune ||
+# --group-by host,tags: without it restic groups by host,paths. Adding a folder
+# to the backup then starts a new group, and the old group never expires (a real
+# repository held 65 snapshots instead of 14, the oldest five months old).
+"$restic" forget --tag "$tag" --group-by host,tags --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune ||
   fail "the backup ran, but forget/prune failed (rc=$?): the repository will fill up"
 
 snap=$("$restic" snapshots --tag "$tag" --latest 1 --json 2>/dev/null)

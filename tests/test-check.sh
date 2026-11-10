@@ -25,6 +25,9 @@ mkdir -p "$copy"
 (cd "$t_root" && git ls-files -z --cached --others --exclude-standard | xargs -0 tar cf - | tar xf - -C "$copy")
 g() { git -C "$copy" -c user.name=test -c user.email=test@example.invalid -c core.hooksPath=/dev/null "$@"; }
 g init -q && g add -A && g commit -qm "copy"
+# ruff and mypy live in the ignored .lint/ (tools/setup-dev.sh), so the copy
+# has none and the python-lint step failed on any machine without them on PATH
+[ -d "$t_root/.lint" ] && ln -s "$t_root/.lint" "$copy/.lint"
 # no private word list: the copy must pass on the generic patterns alone
 export DECOLAB_GUARD_WORDS=$t_tmp/no-words
 

@@ -123,6 +123,30 @@ check "sign-off with another address is found" 1 "personal-word" -- guard --text
 printf 'change\n\nSigned-off-by: Zebrafink <%s> %s\n' "$nr" "$priv" > "$t_tmp/msg.txt"
 check "nothing may follow the identity" 1 "private-ipv4" -- guard --text "$t_tmp/msg.txt"
 
+echo "GitHub's own identities (Dependabot)"
+gh_at="@"; dep_id="49699333+dependabot[bot]${gh_at}users.noreply.github.com"
+git -C "$repo2" checkout -q -b dep
+printf 'y\n' > "$repo2/dep.txt"
+git -C "$repo2" add dep.txt
+GIT_AUTHOR_NAME="dependabot[bot]" GIT_AUTHOR_EMAIL="$dep_id" \
+  GIT_COMMITTER_NAME=GitHub GIT_COMMITTER_EMAIL="noreply${gh_at}github.com" \
+  git -C "$repo2" commit -q --no-verify -m "bump x" -m "Signed-off-by: dependabot[bot] <support${gh_at}github.com>"
+check "a Dependabot commit passes" 0 "clean (--history)" -- guard2 --history
+git -C "$repo2" checkout -q -
+git -C "$repo2" branch -q -D dep
+printf 'change\n\nSigned-off-by: Zebrafink <support%sgithub.com>\n' "$gh_at" > "$t_tmp/msg.txt"
+check "the support address under another name is found" 1 "e-mail" -- guard --text "$t_tmp/msg.txt"
+printf 'mail noreply%sgithub.com\n' "$gh_at" > "$t_tmp/msg.txt"
+check "GitHub's address in a message is found" 1 "e-mail" -- guard --text "$t_tmp/msg.txt"
+git -C "$repo2" checkout -q -b dep2
+printf 'z\n' > "$repo2/dep2.txt"
+git -C "$repo2" add dep2.txt
+GIT_COMMITTER_NAME=Zebrafink GIT_COMMITTER_EMAIL="noreply${gh_at}github.com" \
+  git -C "$repo2" commit -q --no-verify -m "z"
+check "GitHub's address under another name is found" 1 "author" -- guard2 --history
+git -C "$repo2" checkout -q -
+git -C "$repo2" branch -q -D dep2
+
 echo "tool errors are not a clean result"
 check "outside a repository" 2 "not inside a git repository" -- bash -c 'cd "$1" && "$2"/tools/guard.sh --tree' _ "$t_tmp" "$t_root"
 check "unknown option" 2 "" -- guard --everything

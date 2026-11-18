@@ -182,7 +182,12 @@ fi
 [ -n "$words_args" ] || echo "guard: note: no private word list ($words_file); only generic patterns are checked" >&2
 
 # noreply_out - drop identities "Name <N+login@users.noreply.github.com>"
-noreply_out() { grep -vE '^[^<>]* <[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com>$' || true; }
+# (bots: "N+name[bot]@..."), and GitHub's own committer for commits made on
+# github.com (Dependabot, web edits). All are public by design.
+noreply_out() {
+  grep -vE -e '^[^<>]* <[0-9]+\+[A-Za-z0-9-]+(\[bot\])?@users\.noreply\.github\.com>$' \
+           -e '^GitHub <noreply@github\.com>$' || true
+}
 
 # --- text files are scanned from a scratch directory -------------------------
 scan_text() { # LABEL FILE
@@ -190,7 +195,10 @@ scan_text() { # LABEL FILE
   dir=$(mktemp -d "$tmp/text.XXXXXX")
   # A DCO sign-off under the GitHub noreply identity names the account that
   # publishes the commit anyway (as for authors above): exempt that line only.
-  grep -vE '^Signed-off-by: [^<>]* <[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com>$' "$2" > "$dir/content" || true
+  # Dependabot signs off with GitHub's public support address: that exact
+  # line only.
+  grep -vE -e '^Signed-off-by: [^<>]* <[0-9]+\+[A-Za-z0-9-]+@users\.noreply\.github\.com>$' \
+           -e '^Signed-off-by: dependabot\[bot\] <support@github\.com>$' "$2" > "$dir/content" || true
   (cd "$dir" && scan "$1" --no-index -- content)
 }
 

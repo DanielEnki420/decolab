@@ -46,8 +46,30 @@ wait_for() { # SECONDS DESCRIPTION CMD... - until CMD succeeds
   return 1
 }
 secrets() { cfg SECRETS_DIR; }
+# containers_bad - "NAME STATUS" of each container that is not up and well:
+# only "Up ..." without a health check and "Up ... (healthy)" pass. Exited,
+# restarting, created, paused, unhealthy and "health: starting" are named.
+# A list of states to drop is the trap here: "Up 3 hours (unhealthy)"
+# contains "healthy". A failing docker is reported, not taken as "none".
+containers_bad() {
+  local all
+  all=$(docker ps -a --format '{{.Names}} {{.Status}}') || { echo "docker ps failed"; return 0; }
+  printf '%s\n' "$all" | grep -vE '^$|^[^ ]+ Up [^(]*$|^[^ ]+ Up .*\(healthy\)$' || true
+}
+# shellcheck disable=SC2329  # called through wait_for
+all_containers_up() { [ -z "$(containers_bad)" ]; }
+check_containers() {
+  local bad
+  bad=$(containers_bad)
+  [ -z "$bad" ] && ok "no container down or unhealthy" || fail "containers: $bad"
+}
 
 case $phase in
+
+# --- the containers alone, as install checks them (also by hand in the VM) ---
+containers)
+  check_containers
+  end ;;
 
 # --- the generic kernel: the cloud kernel has no USB drivers ---------------
 kernel)
@@ -197,8 +219,7 @@ install)
   mkdir -p /mnt/usb/decolab && touch /mnt/usb/decolab/.decolab-usb-backup && ok "USB disk marked"
   say "containers"
   docker ps --format '{{.Names}} {{.Status}}' | sort | sed 's/^/   /'
-  bad=$(docker ps -a --format '{{.Names}} {{.Status}}' | grep -vE ' Up .*(healthy|[0-9] (seconds|minutes|hours))' | grep -v '(healthy)' | grep -E 'unhealthy|Exited|Restarting|Created' || true)
-  [ -z "$bad" ] && ok "no container down" || fail "containers: $bad"
+  check_containers
   end ;;
 
 # --- test data: what a household would have after a day ---------------------
@@ -361,7 +382,7 @@ after-reboot)
   sshd_pw=$(sudo sshd -T -C user=pi,host=localhost,addr=192.0.2.2 2>/dev/null | awk '$1 == "passwordauthentication" { print $2 }')
   [ "$sshd_pw" = no ] && ok "sshd: keys only (SSH_PASSWORDS=no)" || fail "sshd: PasswordAuthentication $sshd_pw"
   say "containers after the reboot (waiting up to 5 min)"
-  wait_for 300 "all containers up" sh -c '! docker ps -a --format "{{.Status}}" | grep -qE "unhealthy|Exited|Restarting|Created|starting"'
+  wait_for 300 "all containers up" all_containers_up
   docker ps -a --format '{{.Names}} {{.Status}}' | sort | sed 's/^/   /'
   dig +short +time=3 @"$(cfg HOST_LAN_IP)" example.org | grep . >/dev/null && ok "Pi-hole answers on the LAN address" || fail "no DNS answer on the LAN address"
   # a container reaches the host for DNS, but not for SSH (node is in Kuma's image)
@@ -455,7 +476,7 @@ restore)
 # --- RESTORE.md 7: check it, not just look at it -------------------------------
 restore-check)
   cd "$D" || exit 1
-  wait_for 600 "all containers up" sh -c '! docker ps -a --format "{{.Status}}" | grep -qE "unhealthy|Exited|Restarting|Created|starting"'
+  wait_for 600 "all containers up" all_containers_up
   docker ps -a --format '{{.Names}} {{.Status}}' | sort | sed 's/^/   /'
   ip=$(cfg HOST_LAN_IP)
   blocked=$(sqlite3 "file:/mnt/data/pihole/gravity.db?mode=ro" "SELECT domain FROM gravity LIMIT 1 OFFSET 500")
